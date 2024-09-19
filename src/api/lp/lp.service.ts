@@ -18,6 +18,11 @@ export class LpService {
     private lpPriceProviderFactoryService: LpPriceProviderFactoryService,
   ) {}
 
+  /**
+   * Retrieves the Annual Percentage Rate (APR) for a given vault address.
+   * @param vaultAddress The address of the vault for which APR is to be calculated.
+   * @returns A promise that resolves to an LpResponseDto containing the vault address and its APR.
+   */
   public async getApr(vaultAddress: Address): Promise<LpResponseDto> {
     this.logger.debug(this.getApr.name, vaultAddress);
 
@@ -41,6 +46,14 @@ export class LpService {
     return [priceProvider, dataProvider];
   }
 
+  /**
+   * Calculates the fee-based APR for the given LP data and price providers and tokens.
+   * @param lpDataProvider The data provider for the Liquidity Pool.
+   * @param lpPriceProvider The price provider for the Liquidity Pool.
+   * @param token0 The first token in the Liquidity Pool.
+   * @param token1 The second token in the Liquidity Pool.
+   * @returns A promise that resolves to the calculated APR as a number.
+   */
   private async getFeeApr(
     lpDataProvider: LpDataProvider,
     lpPriceProvider: LpPriceProvider,
@@ -50,6 +63,7 @@ export class LpService {
     const endTimestamp = getEndOfPreviousDayTimestamp();
     let startTimestamp = endTimestamp - MILLISECONDS_PER_WEEK; //weekly data
 
+    // if vault is younger than 7 days, we use timestamp from startingBlock env property
     const deploymentTimestamp = await lpDataProvider.getDeploymentTimestamp();
     if (startTimestamp <= deploymentTimestamp) {
       startTimestamp = deploymentTimestamp;
@@ -77,6 +91,17 @@ export class LpService {
     return (annualizedFees / tvl) * 100;
   }
 
+  /**
+   * Calculates the annualized fees based on collected and uncollected fees, token prices, and the period.
+   * @param uncollectedFeesDifference The difference in uncollected fees over the period.
+   * @param collectedFees The fees collected over the period.
+   * @param token0 The first token in the Liquidity Pool.
+   * @param token1 The second token in the Liquidity Pool.
+   * @param token0UsdValue The USD value of the first token.
+   * @param token1UsdValue The USD value of the second token.
+   * @param periodInMillis The period over which fees are calculated, in milliseconds.
+   * @returns The total annualized fees in USD.
+   */
   private calculateAnnualizedFees(
     uncollectedFeesDifference: VaultFees,
     collectedFees: VaultFees,

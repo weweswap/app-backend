@@ -56,6 +56,13 @@ export class LpDataProvider {
     return adjustPresentationDecimals(token1, LP_PRESENTATION_DECIMALS);
   }
 
+  /**
+   * Calculates the difference in uncollected fees between two timestamps.
+   * Results are cached and expire after five minutes to balance performance and data freshness.
+   * @param startTimestamp The start timestamp for fee calculation.
+   * @param endTimestamp The end timestamp for fee calculation.
+   * @returns A promise that resolves to the VaultFees object representing the fee differences.
+   */
   @Memoize({
     expiring: FIVE_MINUTES_IN_MILLISECONDS,
     hashFunction: (startTimestamp: number, endTimestamp: number) => {
@@ -100,6 +107,13 @@ export class LpDataProvider {
     return { fee0: fee0Diff, fee1: fee1Diff };
   }
 
+  /**
+   * Retrieves the sum of collected fees between two timestamps.
+   * Results are cached and expire after five minutes to balance performance and data freshness.
+   * @param startTimestamp The start timestamp for fee retrieval.
+   * @param endTimestamp The end timestamp for fee retrieval.
+   * @returns A promise that resolves to the VaultFees object representing the collected fees.
+   */
   @MemoizeExpiring(FIVE_MINUTES_IN_MILLISECONDS)
   public async getCollectedFees(startTimestamp: number, endTimestamp: number): Promise<VaultFees> {
     const collectedFees = await this.dbService.getCollectedFeeSum(this.vaultAddress, startTimestamp, endTimestamp);
@@ -109,6 +123,13 @@ export class LpDataProvider {
     return { fee0: 0n, fee1: 0n };
   }
 
+  /**
+   * Retrieves the average Total Value Locked (TVL) between two timestamps.
+   * Results are cached and expire after five minutes to balance performance and data freshness.
+   * @param startTimestamp The start timestamp for TVL calculation.
+   * @param endTimestamp The end timestamp for TVL calculation.
+   * @returns A promise that resolves to the average TVL as a number.
+   */
   @MemoizeExpiring(FIVE_MINUTES_IN_MILLISECONDS)
   public async getAverageTvl(startTimestamp: number, endTimestamp: number): Promise<number> {
     return await this.dbService.getAverageTvl(this.vaultAddress, startTimestamp, endTimestamp);
