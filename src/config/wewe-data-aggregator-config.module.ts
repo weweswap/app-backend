@@ -1,7 +1,7 @@
 import { Logger, Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { BrokkrDataAggregatorConfigService } from "./brokkr-data-aggregator-config.service";
 import configuration from "./configuration";
+import { WeweConfigService } from "./wewe-data-aggregator-config.service";
 
 @Module({
   imports: [
@@ -11,7 +11,7 @@ import configuration from "./configuration";
       load: [configuration],
     }),
   ],
-  providers: [BrokkrDataAggregatorConfigService, Logger],
-  exports: [BrokkrDataAggregatorConfigService],
+  providers: [WeweConfigService, Logger],
+  exports: [WeweConfigService],
 })
-export class BrokkrDataAggregatorConfigModule {}
+export class WeweConfigModule {}

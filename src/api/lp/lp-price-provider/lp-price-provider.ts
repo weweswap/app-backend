@@ -1,7 +1,7 @@
 import { MemoizeExpiring } from "typescript-memoize";
 import { FIVE_MINUTES_IN_MILLISECONDS } from "../../../shared/constants";
 import { CoingeckoService } from "../../../price-oracles/coingecko/coingecko.service";
-import { ArrakisVaultConfig } from "../../../shared/class/BrokkrDataAggregatorConfig";
+import { ArrakisVaultConfig } from "../../../shared/class/WeweDataAggregatorConfig";
 
 export class LpPriceProvider {
   private readonly token0CoingeckoName;

@@ -102,3 +102,9 @@ The vault aggregation logic starts automatically:
 
 The APR calculation is exposed via an API:
 - Use the API to retrieve the current APR based on the fees and vault data for a specific liquidity pool (LP).
+
+## Further improvements
+- Split up data-aggregator & api, if api requests are growing
+- Share common contract calls between data-aggregator & api
+  - /contract-connectors & /api/lp/lp-data-provider have lot of overlap
+- `LogCollectedFees` events are resynced from the startingBlock now with every restart -> resulting in lots of unncecessary node requests, but more certainty that all data is present

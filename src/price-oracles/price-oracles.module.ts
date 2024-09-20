@@ -1,10 +1,10 @@
 import { Logger, Module } from "@nestjs/common";
 import { CoingeckoService } from "./coingecko/coingecko.service";
-import { BrokkrDataAggregatorConfigModule } from "../config/brokkr-data-aggregator-config.module";
 import { HttpModule } from "@nestjs/axios";
+import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
 
 @Module({
-  imports: [BrokkrDataAggregatorConfigModule, HttpModule],
+  imports: [WeweConfigModule, HttpModule],
   providers: [CoingeckoService, Logger],
   exports: [CoingeckoService],
 })

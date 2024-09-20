@@ -2,13 +2,13 @@ import { Injectable, Logger } from "@nestjs/common";
 import { BlockNumber, Chain, createPublicClient, extractChain, http, PublicClient, TransactionReceipt } from "viem";
 import { Memoize, MemoizeExpiring } from "typescript-memoize";
 import { Hash } from "viem/types/misc";
-import { BrokkrDataAggregatorConfigService } from "../../config/brokkr-data-aggregator-config.service";
 import { ChainId, KnownChainId } from "../../shared/types/chainsIds";
 import * as chains from "viem/chains";
 import { isOlderThanTenMinutes } from "../../utils/aggregation-utils";
 import { FIFTY_MINUTES_IN_MILLISECONDS } from "../../shared/constants";
 import Web3 from "web3";
 import EthDater from "ethereum-block-by-date";
+import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class EvmConnectorService {
@@ -19,7 +19,7 @@ export class EvmConnectorService {
 
   constructor(
     private readonly logger: Logger,
-    private readonly configService: BrokkrDataAggregatorConfigService,
+    private readonly configService: WeweConfigService,
   ) {
     this.client = createPublicClient({ transport: http(this.configService.nodeUrlRpc) });
     this.web3Client = new Web3(this.configService.nodeUrlRpc);

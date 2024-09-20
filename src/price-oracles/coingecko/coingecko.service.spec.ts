@@ -1,15 +1,15 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { CoingeckoService } from "./coingecko.service";
-import { BrokkrDataAggregatorConfigModule } from "../../config/brokkr-data-aggregator-config.module";
 import { HttpModule } from "@nestjs/axios";
 import { Logger } from "@nestjs/common";
+import { WeweConfigModule } from "../../config/wewe-data-aggregator-config.module";
 
 describe("CoingeckoService", () => {
   let service: CoingeckoService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [BrokkrDataAggregatorConfigModule, HttpModule],
+      imports: [WeweConfigModule, HttpModule],
       providers: [CoingeckoService, Logger],
     }).compile();
 

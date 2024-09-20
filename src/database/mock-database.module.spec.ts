@@ -1,7 +1,7 @@
 import { Global, Logger, Module, Provider } from "@nestjs/common";
 import { VaultDbService } from "./vault-db/vault-db.service";
 import { Test, TestingModule } from "@nestjs/testing";
-import { BrokkrDataAggregatorConfigModule } from "../config/brokkr-data-aggregator-config.module";
+import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
 
 export const dbMockRepository = {
   find: () => {
@@ -35,7 +35,7 @@ describe("MockDatabaseModule", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [MockDatabaseModule, BrokkrDataAggregatorConfigModule],
+      imports: [MockDatabaseModule, WeweConfigModule],
     }).compile();
 
     dbService = module.get(VaultDbService);

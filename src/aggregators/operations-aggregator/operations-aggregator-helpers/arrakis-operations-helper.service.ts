@@ -1,16 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
-import { BrokkrDataAggregatorConfigService } from "../../../config/brokkr-data-aggregator-config.service";
 import { LpVaultCollectedFeesAbiEvent } from "../../../shared/models/Types";
 import { Address, GetLogsReturnType } from "viem";
 import { CollectedVaultFeeEventDto, CollectedVaultFeeEventMetadataDto } from "../../../database/db-models";
 import { VaultDbService } from "../../../database/vault-db/vault-db.service";
+import { WeweConfigService } from "../../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class ArrakisOperationsHelperService {
   constructor(
     private evmConnector: EvmConnectorService,
-    private configService: BrokkrDataAggregatorConfigService,
+    private configService: WeweConfigService,
     private vaultDbService: VaultDbService,
   ) {}
 

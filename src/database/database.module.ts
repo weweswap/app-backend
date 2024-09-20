@@ -1,9 +1,9 @@
 import { Logger, Module } from "@nestjs/common";
-import { BrokkrDataAggregatorConfigModule } from "../config/brokkr-data-aggregator-config.module";
 import { MongooseModule } from "@nestjs/mongoose";
 import { VaultDbService } from "./vault-db/vault-db.service";
 import { CollectVaultFeeEventDocument, CollectVaultFeeEventSchema } from "./schemas/CollectedVaultFeeEvent.schema";
 import { VaultHistoricalDocument, VaultsHistoricalDocumentSchema } from "./schemas/VaultHistoricalData.schema";
+import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { VaultHistoricalDocument, VaultsHistoricalDocumentSchema } from "./schem
         schema: VaultsHistoricalDocumentSchema,
       },
     ]),
-    BrokkrDataAggregatorConfigModule,
+    WeweConfigModule,
   ],
   providers: [Logger, VaultDbService],
   exports: [VaultDbService],

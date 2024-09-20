@@ -1,11 +1,11 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { BrokkrDataAggregatorConfigService } from "./brokkr-data-aggregator-config.service";
 import { ConfigModule } from "@nestjs/config";
 import configuration from "./configuration";
 import { Logger } from "@nestjs/common";
+import { WeweConfigService } from "./wewe-data-aggregator-config.service";
 
-describe("BrokkrDataAggregatorConfigService", () => {
-  let service: BrokkrDataAggregatorConfigService;
+describe("WeweConfigService", () => {
+  let service: WeweConfigService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -16,10 +16,10 @@ describe("BrokkrDataAggregatorConfigService", () => {
           load: [configuration],
         }),
       ],
-      providers: [BrokkrDataAggregatorConfigService, Logger],
+      providers: [WeweConfigService, Logger],
     }).compile();
 
-    service = module.get<BrokkrDataAggregatorConfigService>(BrokkrDataAggregatorConfigService);
+    service = module.get<WeweConfigService>(WeweConfigService);
   });
 
   it("should be defined", () => {

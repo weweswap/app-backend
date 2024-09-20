@@ -1,5 +1,4 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { BrokkrDataAggregatorConfigService } from "../../config/brokkr-data-aggregator-config.service";
 import {
   COINGECKO_MAX_DAYS_FOR_HOURLY_DATA,
   FIVE_MINUTES_IN_MILLISECONDS,
@@ -15,6 +14,7 @@ import { MemoizeExpiring } from "typescript-memoize";
 import { ICoingeckoDataResponse } from "../../shared/interface/ICoingeckoData";
 import { cacheCoingeckoResponse, getHourlyTokenPriceFromCache } from "../../utils/coingecko-utils";
 import { IPriceEntity } from "../../shared/interface/IPriceEntity";
+import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class CoingeckoService {
@@ -28,7 +28,7 @@ export class CoingeckoService {
   > = new Map();
 
   constructor(
-    private configService: BrokkrDataAggregatorConfigService,
+    private configService: WeweConfigService,
     private readonly logger: Logger,
     private readonly httpService: HttpService,
   ) {}

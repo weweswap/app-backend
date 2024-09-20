@@ -1,19 +1,19 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Address } from "viem";
-import { ArrakisVaultConfig, BrokkrDataAggregatorConfig } from "../shared/class/BrokkrDataAggregatorConfig";
+import { ArrakisVaultConfig, WeweConfig } from "../shared/class/WeweDataAggregatorConfig";
 import { EnvType } from "../shared/enum/EnvType";
 import { MongoConfig } from "../shared/class/MongoConfig";
 
 @Injectable()
-export class BrokkrDataAggregatorConfigService {
-  private readonly _config: BrokkrDataAggregatorConfig;
+export class WeweConfigService {
+  private readonly _config: WeweConfig;
 
   constructor(
     private configService: ConfigService,
     private readonly logger: Logger,
   ) {
-    const config = this.configService.get<BrokkrDataAggregatorConfig>("config");
+    const config = this.configService.get<WeweConfig>("config");
 
     if (!config) throw new Error("this.configService.get<IConfig>(config); is UNDEFINED!!!");
 
@@ -46,7 +46,7 @@ export class BrokkrDataAggregatorConfigService {
     return this._config.nodeUrlRpc;
   }
 
-  get config(): BrokkrDataAggregatorConfig {
+  get config(): WeweConfig {
     return this._config;
   }
 

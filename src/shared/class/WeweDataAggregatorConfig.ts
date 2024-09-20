@@ -57,7 +57,7 @@ export class TokenConfig {
   }
 }
 
-export class BrokkrDataAggregatorConfig {
+export class WeweConfig {
   @IsEnum(EnvType)
   env: EnvType;
 

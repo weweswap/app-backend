@@ -1,14 +1,14 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { LpPriceProvider } from "./lp-price-provider";
 import { CoingeckoService } from "../../../price-oracles/coingecko/coingecko.service";
-import { BrokkrDataAggregatorConfigService } from "../../../config/brokkr-data-aggregator-config.service";
+import { WeweConfigService } from "../../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class LpPriceProviderFactoryService {
   private lpPriceProviders: Map<string, LpPriceProvider>;
 
   constructor(
-    private brokkrConfigService: BrokkrDataAggregatorConfigService,
+    private configService: WeweConfigService,
     private readonly logger: Logger,
     private coingeckoService: CoingeckoService,
   ) {
@@ -18,7 +18,7 @@ export class LpPriceProviderFactoryService {
   initLpPriceProviders(): Map<string, LpPriceProvider> {
     const providersMap = new Map<string, LpPriceProvider>();
 
-    const lpStrategies = this.brokkrConfigService.arrakisVaultConfigs;
+    const lpStrategies = this.configService.arrakisVaultConfigs;
 
     for (const lpStrategy of lpStrategies) {
       const address = lpStrategy.address;

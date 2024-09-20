@@ -6,14 +6,14 @@ import { Token } from "../../shared/types/common";
 import { NATIVE_TOKEN_CONTRACT_ADDRESS } from "../../shared/constants";
 import { EvmConnectorService } from "../evm-connector/evm-connector.service";
 import { ITokenPair } from "../../shared/interface/ITokenPair";
-import { BrokkrDataAggregatorConfigService } from "../../config/brokkr-data-aggregator-config.service";
+import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class Erc20Service {
   constructor(
     private readonly logger: Logger,
     private readonly evmConnector: EvmConnectorService,
-    private configService: BrokkrDataAggregatorConfigService,
+    private configService: WeweConfigService,
   ) {}
 
   @Memoize()

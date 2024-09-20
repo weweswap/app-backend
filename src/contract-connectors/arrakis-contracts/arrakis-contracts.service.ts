@@ -6,14 +6,14 @@ import { arrakisHelperAbi, arrakisVaultAbi } from "../../abis/abi";
 import Big from "big.js";
 import { CoingeckoService } from "../../price-oracles/coingecko/coingecko.service";
 import { ONE_HOUR_IN_MILLISECONDS } from "../../shared/constants";
-import { BrokkrDataAggregatorConfigService } from "../../config/brokkr-data-aggregator-config.service";
-import { ArrakisVaultConfig } from "../../shared/class/BrokkrDataAggregatorConfig";
+import { ArrakisVaultConfig } from "../../shared/class/WeweDataAggregatorConfig";
 import { Erc20Service } from "../../blockchain-connectors/erc-20/erc-20.service";
 import { VaultHistoricalMetadataDto } from "../../shared/class/VaultHistoricalDataDto";
 import { ITokenPair } from "../../shared/interface/ITokenPair";
+import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 
 /**
- * Service responsible for connecting to Brokkr Arrakis Smart Contracts
+ * Service responsible for connecting to Arrakis Smart Contracts
  */
 @Injectable()
 export class ArrakisContractsService {
@@ -21,7 +21,7 @@ export class ArrakisContractsService {
     private evmConnector: EvmConnectorService,
     private erc20Service: Erc20Service,
     private coingeckoService: CoingeckoService,
-    private configService: BrokkrDataAggregatorConfigService,
+    private configService: WeweConfigService,
   ) {}
 
   public async getVaultHistoricalData(

@@ -2,8 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Address, getContract } from "viem";
 import { ArrakisUnderlyingAmounts, ranges } from "../../../shared/types/common";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
-import { BrokkrDataAggregatorConfigService } from "../../../config/brokkr-data-aggregator-config.service";
 import { arrakisHelperAbi } from "../../../abis/abi";
+import { WeweConfigService } from "../../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class ArrakisHelperService {
@@ -13,7 +13,7 @@ export class ArrakisHelperService {
   constructor(
     private readonly logger: Logger,
     private readonly archiveEvmConnector: EvmConnectorService,
-    private readonly configService: BrokkrDataAggregatorConfigService,
+    private readonly configService: WeweConfigService,
   ) {
     this.arrakisHelperAddress = this.configService.arrakisHelperAddress;
     this.archiveArrakisHelperContract = getContract({

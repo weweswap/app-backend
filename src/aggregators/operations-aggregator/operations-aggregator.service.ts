@@ -1,5 +1,4 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { BrokkrDataAggregatorConfigService } from "../../config/brokkr-data-aggregator-config.service";
 import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/evm-connector.service";
 import { CronExpression, SchedulerRegistry } from "@nestjs/schedule";
 import { CronJob } from "cron";
@@ -7,12 +6,13 @@ import { LpVaultCollectedFeesAbiEvent, SingleLogEvent, isLpVaultCollectedFeesEve
 import { ArrakisOperationsHelperService } from "./operations-aggregator-helpers/arrakis-operations-helper.service";
 import { LOGS_MAX_BLOCK_RANGE } from "../../shared/constants";
 import { Address } from "viem";
+import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class OperationsAggregatorService {
   constructor(
     private evmConnector: EvmConnectorService,
-    private configService: BrokkrDataAggregatorConfigService,
+    private configService: WeweConfigService,
     private logger: Logger,
     private schedulerRegistry: SchedulerRegistry,
     private vaultAggregatorService: ArrakisOperationsHelperService,

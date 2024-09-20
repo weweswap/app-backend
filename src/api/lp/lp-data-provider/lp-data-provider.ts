@@ -9,7 +9,7 @@ import { Token, VaultFees } from "../../../shared/types/common";
 import { adjustPresentationDecimals } from "../../../utils/utils";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
 import { arrakisVaultAbi } from "../../../abis/abi";
-import { ArrakisVaultConfig } from "../../../shared/class/BrokkrDataAggregatorConfig";
+import { ArrakisVaultConfig } from "../../../shared/class/WeweDataAggregatorConfig";
 
 export class LpDataProvider {
   private readonly vaultConfig;

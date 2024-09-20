@@ -2,24 +2,24 @@ import { Logger, Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AggregatorsModule } from "./aggregators/aggregators.module";
-import { BrokkrDataAggregatorConfigModule } from "./config/brokkr-data-aggregator-config.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { MongooseModule } from "@nestjs/mongoose";
-import { BrokkrDataAggregatorConfigService } from "./config/brokkr-data-aggregator-config.service";
 import { LpModule } from "./api/lp/lp.module";
+import { WeweConfigModule } from "./config/wewe-data-aggregator-config.module";
+import { WeweConfigService } from "./config/wewe-data-aggregator-config.service";
 
 @Module({
   imports: [
-    BrokkrDataAggregatorConfigModule,
+    WeweConfigModule,
     AggregatorsModule,
     ScheduleModule.forRoot(),
     MongooseModule.forRootAsync({
-      imports: [BrokkrDataAggregatorConfigModule],
-      useFactory: async (configService: BrokkrDataAggregatorConfigService) => ({
+      imports: [WeweConfigModule],
+      useFactory: async (configService: WeweConfigService) => ({
         uri: configService.config.mongoConfig.url,
         dbName: configService.config.mongoConfig.dbName,
       }),
-      inject: [BrokkrDataAggregatorConfigService],
+      inject: [WeweConfigService],
     }),
     LpModule,
   ],

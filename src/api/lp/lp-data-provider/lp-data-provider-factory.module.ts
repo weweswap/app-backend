@@ -4,11 +4,11 @@ import { ArrakisHelperService } from "./arrakis-helper.service";
 import { HttpModule } from "@nestjs/axios";
 import { DatabaseModule } from "../../../database/database.module";
 import { BlockchainConnectorsModule } from "../../../blockchain-connectors/blockchain-connectors.module";
-import { BrokkrDataAggregatorConfigModule } from "../../../config/brokkr-data-aggregator-config.module";
+import { WeweConfigModule } from "../../../config/wewe-data-aggregator-config.module";
 
 @Module({
   imports: [
-    BrokkrDataAggregatorConfigModule,
+    WeweConfigModule,
     BlockchainConnectorsModule,
     DatabaseModule,
     HttpModule.register({

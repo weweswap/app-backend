@@ -1,17 +1,17 @@
 import { Logger, Module } from "@nestjs/common";
-import { BrokkrDataAggregatorConfigModule } from "../config/brokkr-data-aggregator-config.module";
-import { BrokkrDataAggregatorConfigService } from "../config/brokkr-data-aggregator-config.service";
 import { Erc20Service } from "./erc-20/erc-20.service";
 import { EvmConnectorService } from "./evm-connector/evm-connector.service";
+import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
+import { WeweConfigService } from "../config/wewe-data-aggregator-config.service";
 
 @Module({
-  imports: [BrokkrDataAggregatorConfigModule],
+  imports: [WeweConfigModule],
   providers: [
     Logger,
     {
       provide: EvmConnectorService,
-      inject: [Logger, BrokkrDataAggregatorConfigService],
-      useFactory: async (logger: Logger, config: BrokkrDataAggregatorConfigService) => {
+      inject: [Logger, WeweConfigService],
+      useFactory: async (logger: Logger, config: WeweConfigService) => {
         const service = new EvmConnectorService(logger, config);
 
         if (!config.isTest()) {

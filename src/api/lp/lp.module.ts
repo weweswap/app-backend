@@ -4,9 +4,9 @@ import { LpController } from "./lp.controller";
 import { LpPriceProviderFactoryModule } from "./lp-price-provider/lp-price-provider-factory.module";
 import { LpDataProviderFactoryModule } from "./lp-data-provider/lp-data-provider-factory.module";
 import { HttpModule } from "@nestjs/axios";
-import { BrokkrDataAggregatorConfigModule } from "../../config/brokkr-data-aggregator-config.module";
 import { DatabaseModule } from "../../database/database.module";
 import { BlockchainConnectorsModule } from "../../blockchain-connectors/blockchain-connectors.module";
+import { WeweConfigModule } from "../../config/wewe-data-aggregator-config.module";
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { BlockchainConnectorsModule } from "../../blockchain-connectors/blockcha
     LpDataProviderFactoryModule,
     BlockchainConnectorsModule,
     DatabaseModule,
-    BrokkrDataAggregatorConfigModule,
+    WeweConfigModule,
   ],
   controllers: [LpController],
   providers: [LpService, Logger],

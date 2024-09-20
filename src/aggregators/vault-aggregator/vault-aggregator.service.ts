@@ -2,13 +2,13 @@ import { Injectable, Logger } from "@nestjs/common";
 import { VaultDbService } from "../../database/vault-db/vault-db.service";
 import { DateTime } from "luxon";
 import { ArrakisContractsService } from "../../contract-connectors/arrakis-contracts/arrakis-contracts.service";
-import { BrokkrDataAggregatorConfigService } from "../../config/brokkr-data-aggregator-config.service";
 import { MAX_CONSECUTIVE_RETRY, MILLISECONDS_PER_DAY, TEN_SECONDS_IN_MILLISECONDS } from "../../shared/constants";
 import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/evm-connector.service";
-import { ArrakisVaultConfig } from "../../shared/class/BrokkrDataAggregatorConfig";
+import { ArrakisVaultConfig } from "../../shared/class/WeweDataAggregatorConfig";
 import { VaultHistoricalDataDto, VaultHistoricalMetadataDto } from "../../shared/class/VaultHistoricalDataDto";
 import { constructTimestamps } from "../../utils/aggregation-utils";
 import { scheduleToTheNextFullDay } from "../../utils/utils";
+import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class VaultAggregatorService {
@@ -20,7 +20,7 @@ export class VaultAggregatorService {
     private vaultDbService: VaultDbService,
     private evmConnector: EvmConnectorService,
     private arrakisContractService: ArrakisContractsService,
-    private configService: BrokkrDataAggregatorConfigService,
+    private configService: WeweConfigService,
   ) {}
 
   public async startAggregating(): Promise<void> {

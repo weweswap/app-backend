@@ -1,9 +1,9 @@
 import "dotenv-flow/config";
 import { registerAs } from "@nestjs/config";
 import { EnvType } from "../shared/enum/EnvType";
-import { BrokkrDataAggregatorConfig } from "../shared/class/BrokkrDataAggregatorConfig";
 import { ConfigUtils } from "../utils/config-utils";
 import { validateUtil } from "../utils/validate-util";
+import { WeweConfig } from "../shared/class/WeweDataAggregatorConfig";
 
 // define ENV and LOG_LEVEL globally to be consumed at any time (even before app bootstrap)
 export const ENV: EnvType = ConfigUtils.loadEnvFileName(process.env.NODE_ENV);
@@ -20,5 +20,5 @@ const config: Record<string, unknown> = {
 };
 
 export default registerAs("config", () => {
-  return validateUtil(config, BrokkrDataAggregatorConfig);
+  return validateUtil(config, WeweConfig);
 });

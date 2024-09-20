@@ -4,14 +4,14 @@ import { ArrakisHelperService } from "./arrakis-helper.service";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
 import { VaultDbService } from "../../../database/vault-db/vault-db.service";
 import { Erc20Service } from "../../../blockchain-connectors/erc-20/erc-20.service";
-import { BrokkrDataAggregatorConfigService } from "../../../config/brokkr-data-aggregator-config.service";
+import { WeweConfigService } from "../../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class LpDataProviderFactoryService {
   private lpDataProviders: Map<string, LpDataProvider>;
 
   constructor(
-    private brokkrConfigService: BrokkrDataAggregatorConfigService,
+    private configService: WeweConfigService,
     private readonly logger: Logger,
     private readonly archiveEvmConnector: EvmConnectorService,
     private readonly erc20Service: Erc20Service,
@@ -24,7 +24,7 @@ export class LpDataProviderFactoryService {
   initLpDataProviders(): Map<string, LpDataProvider> {
     const providersMap = new Map<string, LpDataProvider>();
 
-    const lpStrategies = this.brokkrConfigService.arrakisVaultConfigs;
+    const lpStrategies = this.configService.arrakisVaultConfigs;
 
     for (const lpStrategy of lpStrategies) {
       const address = lpStrategy.address;

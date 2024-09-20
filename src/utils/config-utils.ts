@@ -24,18 +24,6 @@ export abstract class ConfigUtils {
     }
   }
 
-  public static loadRpcUrl(rpcUrl: string | undefined): string {
-    if (rpcUrl) {
-      return rpcUrl;
-    } else {
-      throw new Error("Undefined process.env.RPC_URL !");
-    }
-  }
-
-  public static loadEnvStringArray(value: string | undefined): string[] {
-    return JSON.parse(value ?? "[]");
-  }
-
   public static loadLogLevelEnv(logLevel: string | undefined) {
     if (logLevel) {
       if (Object.values(LogLevel).includes(logLevel as LogLevel)) {
