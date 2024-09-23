@@ -2,7 +2,6 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Address } from "viem";
 import { ArrakisVaultConfig, WeweConfig } from "../shared/class/WeweDataAggregatorConfig";
-import { EnvType } from "../shared/enum/EnvType";
 import { MongoConfig } from "../shared/class/MongoConfig";
 
 @Injectable()
@@ -20,10 +19,6 @@ export class WeweConfigService {
     this._config = config;
 
     this.logger.warn(`Starting up with the following configuration:\n ${JSON.stringify(this.config, null, 2)}`);
-  }
-
-  public isTest(): boolean {
-    return this._config.env === EnvType.TEST;
   }
 
   get arrakisHelperAddress(): Address {

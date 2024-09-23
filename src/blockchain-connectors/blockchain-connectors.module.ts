@@ -14,9 +14,7 @@ import { WeweConfigService } from "../config/wewe-data-aggregator-config.service
       useFactory: async (logger: Logger, config: WeweConfigService) => {
         const service = new EvmConnectorService(logger, config);
 
-        if (!config.isTest()) {
-          return await service.initialize();
-        }
+        return await service.initialize();
       },
     },
     Erc20Service,

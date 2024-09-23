@@ -1,7 +1,6 @@
 import {
   IsArray,
   IsDefined,
-  IsEnum,
   IsEthereumAddress,
   IsNotEmpty,
   IsNumber,
@@ -13,7 +12,6 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Transform, Type } from "class-transformer";
-import { EnvType } from "../enum/EnvType";
 import { Address } from "viem";
 import { MongoConfig } from "./MongoConfig";
 
@@ -58,9 +56,6 @@ export class TokenConfig {
 }
 
 export class WeweConfig {
-  @IsEnum(EnvType)
-  env: EnvType;
-
   @IsString()
   @IsNotEmpty()
   coingeckoApiKey: string;
@@ -90,7 +85,6 @@ export class WeweConfig {
   arrakisHelperAddress: string;
 
   constructor(
-    env: EnvType,
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
     arrakisVaults: ArrakisVaultConfig[],
