@@ -7,7 +7,7 @@ import { LpDataProvider } from "./lp-data-provider/lp-data-provider";
 import { LpPriceProvider } from "./lp-price-provider/lp-price-provider";
 import { MILLISECONDS_PER_WEEK, MILLISECONDS_PER_YEAR } from "../../shared/constants";
 import { Token, VaultFees } from "../../shared/types/common";
-import { LpResponseDto } from "../../shared/class/LpResponseDto";
+import { VaultInfoResponseDto } from "../../dto/VaultInfoResponseDto";
 
 @Injectable()
 export class LpService {
@@ -23,7 +23,7 @@ export class LpService {
    * @param vaultAddress The address of the vault for which APR is to be calculated.
    * @returns A promise that resolves to an LpResponseDto containing the vault address and its APR.
    */
-  public async getApr(vaultAddress: Address): Promise<LpResponseDto> {
+  public async getApr(vaultAddress: Address): Promise<VaultInfoResponseDto> {
     this.logger.debug(this.getApr.name, vaultAddress);
 
     const [lpPriceProvider, lpDataProvider] = this.getProviders(vaultAddress);
@@ -32,7 +32,7 @@ export class LpService {
 
     const apr = await this.getFeeApr(lpDataProvider, lpPriceProvider, token0, token1);
 
-    return new LpResponseDto(vaultAddress, apr);
+    return new VaultInfoResponseDto(vaultAddress, apr);
   }
 
   private getProviders(lpAddress: string): [LpPriceProvider, LpDataProvider] {

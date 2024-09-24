@@ -1,6 +1,6 @@
 import { Address } from "viem";
 
-export class LpResponseDto {
+export class VaultInfoResponseDto {
   address: Address;
   feeApr: number;
 

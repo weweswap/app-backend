@@ -10,11 +10,12 @@ import {
 } from "@nestjs/common";
 import { LpService } from "./lp.service";
 import { ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
-import { LpResponseDto } from "../../shared/class/LpResponseDto";
 import { Address } from "viem";
+import { VaultInfoResponseDto } from "../../dto/VaultInfoResponseDto";
+import { GetAprParamsDto } from "../../dto/GetVaultInfoParamsDto";
 
 @Controller("api")
-@ApiTags("APR")
+@ApiTags("Vault Info")
 export class LpController {
   private readonly logger = new Logger(LpController.name);
 
@@ -22,28 +23,31 @@ export class LpController {
 
   @Get("/:address")
   @ApiOperation({
-    summary: "Get lp management strategy details",
-    description: "Fetches details for a specific lp management strategy by address.",
+    summary: "Get vault details",
+    description: "Fetches details for a specific vault by address.",
   })
   @ApiParam({
     name: "address",
     required: true,
-    description: "Ethereum address of the lp management strategy",
+    description: "Ethereum address of the vault",
     type: String,
   })
   @UsePipes(
     new ValidationPipe({
       transform: true,
-      exceptionFactory: () => new BadRequestException("Not a valid Ethereum Address"),
+      whitelist: true, // Optionally strip unknown properties
+      forbidNonWhitelisted: true, // Optionally throw error on unknown properties
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      exceptionFactory: (errors) => new BadRequestException("Not a valid Ethereum Address"),
     }),
   )
-  async getApr(@Param("address", new ValidationPipe({ transform: true })) address: string): Promise<LpResponseDto> {
+  async getApr(@Param() params: GetAprParamsDto): Promise<VaultInfoResponseDto> {
+    const { address } = params;
     try {
       return await this.lpService.getApr(address.toLowerCase() as Address);
     } catch (error) {
-      this.logger.error(`Error fetching lp details for address ${address}: ${error}`);
-
-      throw new NotFoundException("Lp Strategy Address not found");
+      this.logger.error(`Error fetching vault information for address ${address}: ${error}`);
+      throw new NotFoundException("Vault Address not found");
     }
   }
 }
