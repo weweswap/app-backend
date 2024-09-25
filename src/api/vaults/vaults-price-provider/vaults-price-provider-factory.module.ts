@@ -1,5 +1,5 @@
 import { Logger, Module } from "@nestjs/common";
-import { LpPriceProviderFactoryService } from "./lp-price-provider-factory.service";
+import { VaultsPriceProviderFactoryService } from "./vaults-price-provider-factory.service";
 import { HttpModule } from "@nestjs/axios";
 import { DatabaseModule } from "../../../database/database.module";
 import { PriceOraclesModule } from "../../../price-oracles/price-oracles.module";
@@ -14,7 +14,7 @@ import { WeweConfigModule } from "../../../config/wewe-data-aggregator-config.mo
       timeout: 5000,
     }),
   ],
-  providers: [LpPriceProviderFactoryService, Logger],
-  exports: [LpPriceProviderFactoryService],
+  providers: [VaultsPriceProviderFactoryService, Logger],
+  exports: [VaultsPriceProviderFactoryService],
 })
-export class LpPriceProviderFactoryModule {}
+export class VaultsPriceProviderFactoryModule {}

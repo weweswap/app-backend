@@ -11,7 +11,7 @@ import { EvmConnectorService } from "../../../blockchain-connectors/evm-connecto
 import { arrakisVaultAbi } from "../../../abis/abi";
 import { ArrakisVaultConfig } from "../../../shared/class/WeweDataAggregatorConfig";
 
-export class LpDataProvider {
+export class VaultsDataProvider {
   private readonly vaultConfig;
   public readonly vaultAddress;
   private readonly vaultContract;

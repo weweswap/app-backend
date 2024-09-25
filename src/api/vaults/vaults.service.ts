@@ -1,21 +1,21 @@
 import { Logger, Injectable } from "@nestjs/common";
-import { LpDataProviderFactoryService } from "./lp-data-provider/lp-data-provider-factory.service";
-import { LpPriceProviderFactoryService } from "./lp-price-provider/lp-price-provider-factory.service";
+import { VaultsDataProviderFactoryService } from "./vaults-data-provider/vaults-data-provider-factory.service";
+import { VaultsPriceProviderFactoryService } from "./vaults-price-provider/vaults-price-provider-factory.service";
 import { Address, formatUnits } from "viem";
 import { getEndOfPreviousDayTimestamp } from "../../utils/utils";
-import { LpDataProvider } from "./lp-data-provider/lp-data-provider";
-import { LpPriceProvider } from "./lp-price-provider/lp-price-provider";
+import { VaultsDataProvider } from "./vaults-data-provider/vaults-data-provider";
+import { VaultsPriceProvider } from "./vaults-price-provider/vaults-price-provider";
 import { MILLISECONDS_PER_WEEK, MILLISECONDS_PER_YEAR } from "../../shared/constants";
 import { Token, VaultFees } from "../../shared/types/common";
 import { VaultInfoResponseDto } from "../../dto/VaultInfoResponseDto";
 
 @Injectable()
-export class LpService {
-  private readonly logger = new Logger(LpService.name);
+export class VaultsService {
+  private readonly logger = new Logger(VaultsService.name);
 
   constructor(
-    private lpDataProviderFactoryService: LpDataProviderFactoryService,
-    private lpPriceProviderFactoryService: LpPriceProviderFactoryService,
+    private lpDataProviderFactoryService: VaultsDataProviderFactoryService,
+    private lpPriceProviderFactoryService: VaultsPriceProviderFactoryService,
   ) {}
 
   /**
@@ -35,7 +35,7 @@ export class LpService {
     return new VaultInfoResponseDto(vaultAddress, apr);
   }
 
-  private getProviders(lpAddress: string): [LpPriceProvider, LpDataProvider] {
+  private getProviders(lpAddress: string): [VaultsPriceProvider, VaultsDataProvider] {
     const priceProvider = this.lpPriceProviderFactoryService.getLpPriceProvider(lpAddress);
     const dataProvider = this.lpDataProviderFactoryService.getLpDataProvider(lpAddress);
 
@@ -55,8 +55,8 @@ export class LpService {
    * @returns A promise that resolves to the calculated APR as a number.
    */
   private async getFeeApr(
-    lpDataProvider: LpDataProvider,
-    lpPriceProvider: LpPriceProvider,
+    lpDataProvider: VaultsDataProvider,
+    lpPriceProvider: VaultsPriceProvider,
     token0: Token,
     token1: Token,
   ) {

@@ -3,7 +3,7 @@ import { FIVE_MINUTES_IN_MILLISECONDS } from "../../../shared/constants";
 import { CoingeckoService } from "../../../price-oracles/coingecko/coingecko.service";
 import { ArrakisVaultConfig } from "../../../shared/class/WeweDataAggregatorConfig";
 
-export class LpPriceProvider {
+export class VaultsPriceProvider {
   private readonly token0CoingeckoName;
   private readonly token1CoingeckoName;
 

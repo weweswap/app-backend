@@ -1,5 +1,5 @@
 import { Logger, Module } from "@nestjs/common";
-import { LpDataProviderFactoryService } from "./lp-data-provider-factory.service";
+import { VaultsDataProviderFactoryService } from "./vaults-data-provider-factory.service";
 import { ArrakisHelperService } from "./arrakis-helper.service";
 import { HttpModule } from "@nestjs/axios";
 import { DatabaseModule } from "../../../database/database.module";
@@ -15,7 +15,7 @@ import { WeweConfigModule } from "../../../config/wewe-data-aggregator-config.mo
       timeout: 5000,
     }),
   ],
-  providers: [LpDataProviderFactoryService, Logger, ArrakisHelperService],
-  exports: [LpDataProviderFactoryService, ArrakisHelperService],
+  providers: [VaultsDataProviderFactoryService, Logger, ArrakisHelperService],
+  exports: [VaultsDataProviderFactoryService, ArrakisHelperService],
 })
-export class LpDataProviderFactoryModule {}
+export class VaultsDataProviderFactoryModule {}

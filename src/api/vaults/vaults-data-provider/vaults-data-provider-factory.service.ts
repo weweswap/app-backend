@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { LpDataProvider } from "./lp-data-provider";
+import { VaultsDataProvider } from "./vaults-data-provider";
 import { ArrakisHelperService } from "./arrakis-helper.service";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
 import { VaultDbService } from "../../../database/vault-db/vault-db.service";
@@ -7,8 +7,8 @@ import { Erc20Service } from "../../../blockchain-connectors/erc-20/erc-20.servi
 import { WeweConfigService } from "../../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
-export class LpDataProviderFactoryService {
-  private lpDataProviders: Map<string, LpDataProvider>;
+export class VaultsDataProviderFactoryService {
+  private vaultsDataProviders: Map<string, VaultsDataProvider>;
 
   constructor(
     private configService: WeweConfigService,
@@ -18,18 +18,18 @@ export class LpDataProviderFactoryService {
     private readonly arrakisHelperService: ArrakisHelperService,
     private readonly dbService: VaultDbService,
   ) {
-    this.lpDataProviders = this.initLpDataProviders();
+    this.vaultsDataProviders = this.initLpDataProviders();
   }
 
-  initLpDataProviders(): Map<string, LpDataProvider> {
-    const providersMap = new Map<string, LpDataProvider>();
+  initLpDataProviders(): Map<string, VaultsDataProvider> {
+    const providersMap = new Map<string, VaultsDataProvider>();
 
-    const lpStrategies = this.configService.arrakisVaultConfigs;
+    const vaults = this.configService.arrakisVaultConfigs;
 
-    for (const lpStrategy of lpStrategies) {
-      const address = lpStrategy.address;
-      const provider = new LpDataProvider(
-        lpStrategy,
+    for (const vault of vaults) {
+      const address = vault.address;
+      const provider = new VaultsDataProvider(
+        vault,
         this.archiveEvmConnector,
         this.erc20Service,
         this.arrakisHelperService,
@@ -38,7 +38,7 @@ export class LpDataProviderFactoryService {
       );
 
       this.logger.debug(
-        `Lp Data Provider initialized for ${lpStrategy.address} with Token0: ${lpStrategy.token0CoingeckoName} and Token1: ${lpStrategy.token1CoingeckoName}`,
+        `Vaults Data Provider initialized for ${vault.address} with Token0: ${vault.token0CoingeckoName} and Token1: ${vault.token1CoingeckoName}`,
         this.initLpDataProviders.name,
       );
       providersMap.set(address, provider);
@@ -47,11 +47,11 @@ export class LpDataProviderFactoryService {
     return providersMap;
   }
 
-  getLpDataProvider(lpAddress: string): LpDataProvider | null {
-    return this.lpDataProviders.get(lpAddress) || null;
+  getLpDataProvider(lpAddress: string): VaultsDataProvider | null {
+    return this.vaultsDataProviders.get(lpAddress) || null;
   }
 
-  getAllLpDataProviders(): LpDataProvider[] {
-    return Array.from(this.lpDataProviders.values());
+  getAllLpDataProviders(): VaultsDataProvider[] {
+    return Array.from(this.vaultsDataProviders.values());
   }
 }

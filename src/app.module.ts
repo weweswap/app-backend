@@ -4,7 +4,7 @@ import { AppService } from "./app.service";
 import { AggregatorsModule } from "./aggregators/aggregators.module";
 import { ScheduleModule } from "@nestjs/schedule";
 import { MongooseModule } from "@nestjs/mongoose";
-import { LpModule } from "./api/lp/lp.module";
+import { VaultsModule } from "./api/vaults/vaults.module";
 import { WeweConfigModule } from "./config/wewe-data-aggregator-config.module";
 import { WeweConfigService } from "./config/wewe-data-aggregator-config.service";
 
@@ -21,7 +21,7 @@ import { WeweConfigService } from "./config/wewe-data-aggregator-config.service"
       }),
       inject: [WeweConfigService],
     }),
-    LpModule,
+    VaultsModule,
   ],
   controllers: [AppController],
   providers: [AppService, Logger],

@@ -8,7 +8,7 @@ import {
   ValidationPipe,
   BadRequestException,
 } from "@nestjs/common";
-import { LpService } from "./lp.service";
+import { VaultsService } from "./vaults.service";
 import { ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
 import { Address } from "viem";
 import { VaultInfoResponseDto } from "../../dto/VaultInfoResponseDto";
@@ -16,10 +16,10 @@ import { GetAprParamsDto } from "../../dto/GetVaultInfoParamsDto";
 
 @Controller("api")
 @ApiTags("Vault Info")
-export class LpController {
-  private readonly logger = new Logger(LpController.name);
+export class VaultsController {
+  private readonly logger = new Logger(VaultsController.name);
 
-  constructor(private readonly lpService: LpService) {}
+  constructor(private readonly vaultService: VaultsService) {}
 
   @Get("/:address")
   @ApiOperation({
@@ -44,7 +44,7 @@ export class LpController {
   async getApr(@Param() params: GetAprParamsDto): Promise<VaultInfoResponseDto> {
     const { address } = params;
     try {
-      return await this.lpService.getApr(address.toLowerCase() as Address);
+      return await this.vaultService.getApr(address.toLowerCase() as Address);
     } catch (error) {
       this.logger.error(`Error fetching vault information for address ${address}: ${error}`);
       throw new NotFoundException("Vault Address not found");
