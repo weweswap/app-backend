@@ -9,10 +9,17 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { VaultsService } from "./vaults.service";
-import { ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
 import { Address } from "viem";
 import { VaultInfoResponseDto } from "../../dto/VaultInfoResponseDto";
-import { GetAprParamsDto } from "../../dto/GetVaultInfoParamsDto";
+import { GetVaultInfoParamsDto } from "../../dto/GetVaultInfoParamsDto";
 
 @Controller("api")
 @ApiTags("Vault Info")
@@ -23,14 +30,25 @@ export class VaultsController {
 
   @Get("/:address")
   @ApiOperation({
-    summary: "Get vault details",
-    description: "Fetches details for a specific vault by address.",
+    summary: "Get Vault Information",
+    description: "Retrieve information about a vault using its address.",
   })
   @ApiParam({
     name: "address",
-    required: true,
-    description: "Ethereum address of the vault",
-    type: String,
+    type: "string",
+    description: "Address of the vault",
+    example: "0x1234567890abcdef1234567890abcdef12345678",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Successfully retrieved vault information.",
+    type: VaultInfoResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: "Not a valid Ethereum Address",
+  })
+  @ApiNotFoundResponse({
+    description: "Vault address not found.",
   })
   @UsePipes(
     new ValidationPipe({
@@ -41,10 +59,10 @@ export class VaultsController {
       exceptionFactory: (errors) => new BadRequestException("Not a valid Ethereum Address"),
     }),
   )
-  async getApr(@Param() params: GetAprParamsDto): Promise<VaultInfoResponseDto> {
+  async getVaultInfo(@Param() params: GetVaultInfoParamsDto): Promise<VaultInfoResponseDto> {
     const { address } = params;
     try {
-      return await this.vaultService.getApr(address.toLowerCase() as Address);
+      return await this.vaultService.getVaultInfo(address.toLowerCase() as Address);
     } catch (error) {
       this.logger.error(`Error fetching vault information for address ${address}: ${error}`);
       throw new NotFoundException("Vault Address not found");
