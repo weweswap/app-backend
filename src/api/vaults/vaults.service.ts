@@ -6,7 +6,6 @@ import { getEndOfPreviousDayTimestamp } from "../../utils/utils";
 import { VaultsDataProvider } from "./vaults-data-provider/vaults-data-provider";
 import { VaultsPriceProvider } from "./vaults-price-provider/vaults-price-provider";
 import { MILLISECONDS_PER_WEEK, MILLISECONDS_PER_YEAR } from "../../shared/constants";
-import { Token, VaultFees } from "../../shared/types/common";
 import { VaultInfoResponseDto } from "../../dto/VaultInfoResponseDto";
 
 @Injectable()
@@ -23,24 +22,20 @@ export class VaultsService {
    * @param vaultAddress The address of the vault for which APR is to be calculated.
    * @returns A promise that resolves to an LpResponseDto containing the vault address and its APR.
    */
-  public async getApr(vaultAddress: Address): Promise<VaultInfoResponseDto> {
-    this.logger.debug(this.getApr.name, vaultAddress);
+  public async getVaultInfo(vaultAddress: Address): Promise<VaultInfoResponseDto> {
+    this.logger.debug(this.getVaultInfo.name, vaultAddress);
 
-    const [lpPriceProvider, lpDataProvider] = this.getProviders(vaultAddress);
+    const [apr, feesPerDay] = await Promise.all([this.getFeeApr(vaultAddress), this.getFeesPerDay(vaultAddress)]);
 
-    const [token0, token1] = await Promise.all([lpDataProvider.getToken0(), lpDataProvider.getToken1()]);
-
-    const apr = await this.getFeeApr(lpDataProvider, lpPriceProvider, token0, token1);
-
-    return new VaultInfoResponseDto(vaultAddress, apr);
+    return new VaultInfoResponseDto(vaultAddress, apr, feesPerDay);
   }
 
-  private getProviders(lpAddress: string): [VaultsPriceProvider, VaultsDataProvider] {
-    const priceProvider = this.lpPriceProviderFactoryService.getLpPriceProvider(lpAddress);
-    const dataProvider = this.lpDataProviderFactoryService.getLpDataProvider(lpAddress);
+  private getProviders(address: string): [VaultsPriceProvider, VaultsDataProvider] {
+    const priceProvider = this.lpPriceProviderFactoryService.getLpPriceProvider(address);
+    const dataProvider = this.lpDataProviderFactoryService.getLpDataProvider(address);
 
     if (!priceProvider || !dataProvider) {
-      throw new Error(`Provider for lp management address ${lpAddress} not found.`);
+      throw new Error(`Provider for vault address ${address} not found.`);
     }
 
     return [priceProvider, dataProvider];
@@ -48,47 +43,74 @@ export class VaultsService {
 
   /**
    * Calculates the fee-based APR for the given LP data and price providers and tokens.
-   * @param lpDataProvider The data provider for the Liquidity Pool.
-   * @param lpPriceProvider The price provider for the Liquidity Pool.
+   * @param vaultDataProvider The data provider for the Vault.
+   * @param vaultPriceProvider The price provider for the Vault.
    * @param token0 The first token in the Liquidity Pool.
    * @param token1 The second token in the Liquidity Pool.
    * @returns A promise that resolves to the calculated APR as a number.
    */
-  private async getFeeApr(
-    lpDataProvider: VaultsDataProvider,
-    lpPriceProvider: VaultsPriceProvider,
-    token0: Token,
-    token1: Token,
-  ) {
+  private async getFeeApr(vaultAddress: Address): Promise<number> {
     const endTimestamp = getEndOfPreviousDayTimestamp();
     let startTimestamp = endTimestamp - MILLISECONDS_PER_WEEK; //weekly data
 
+    const [, vaultDataProvider] = this.getProviders(vaultAddress);
+
     // if vault is younger than 7 days, we use timestamp from startingBlock env property
-    const deploymentTimestamp = await lpDataProvider.getDeploymentTimestamp();
+    const deploymentTimestamp = await vaultDataProvider.getDeploymentTimestamp();
     if (startTimestamp <= deploymentTimestamp) {
       startTimestamp = deploymentTimestamp;
     }
 
-    const [token0UsdValue, token1UsdValue, uncollectedFeesDifference, collectedFees] = await Promise.all([
-      lpPriceProvider.getToken0Price(),
-      lpPriceProvider.getToken1Price(),
-      lpDataProvider.getUncollectedFeesDifference(startTimestamp, endTimestamp),
-      lpDataProvider.getCollectedFees(startTimestamp, endTimestamp),
-    ]);
-
-    const tvl = await lpDataProvider.getAverageTvl(startTimestamp, endTimestamp);
-
-    const annualizedFees = this.calculateAnnualizedFees(
-      uncollectedFeesDifference,
-      collectedFees,
-      token0,
-      token1,
-      +token0UsdValue,
-      +token1UsdValue,
-      endTimestamp - startTimestamp,
-    );
+    const tvl = await vaultDataProvider.getAverageTvl(startTimestamp, endTimestamp);
+    const annualizedFees = await this.calculateAnnualizedFees(vaultAddress, startTimestamp, endTimestamp);
 
     return (annualizedFees / tvl) * 100;
+  }
+
+  /**
+   * Calculates the total accumulated fees in USD on this day.
+   * @param vaultDataProvider The data provider for the Vault.
+   * @param vaultPriceProvider The price provider for the Vault.
+   * @param token0 The first token in the Liquidity Pool.
+   * @param token1 The second token in the Liquidity Pool.
+   * @returns A promise that resolves to the calculated APR as a number.
+   */
+  private async getFeesPerDay(vaultAddress: Address): Promise<number> {
+    //get timestamps for start of the day until now
+    let startTimestamp = getEndOfPreviousDayTimestamp();
+    const endTimestamp = Date.now();
+
+    const [, vaultDataProvider] = this.getProviders(vaultAddress);
+
+    // if vault deployment is after startTimestamp, we use timestamp from startingBlock env property
+    const deploymentTimestamp = await vaultDataProvider.getDeploymentTimestamp();
+    if (startTimestamp <= deploymentTimestamp) {
+      startTimestamp = deploymentTimestamp;
+    }
+
+    return await this.getTotalFeesInUsd(vaultAddress, startTimestamp, endTimestamp);
+  }
+
+  private async getTotalFeesInUsd(vaultAddress: Address, startTimestamp: number, endTimestamp: number) {
+    const [vaultPriceProvider, vaultDataProvider] = this.getProviders(vaultAddress);
+
+    const [token0, token1, token0UsdValue, token1UsdValue, uncollectedFeesDifference, collectedFees] =
+      await Promise.all([
+        vaultDataProvider.getToken0(),
+        vaultDataProvider.getToken1(),
+        vaultPriceProvider.getToken0Price(),
+        vaultPriceProvider.getToken1Price(),
+        vaultDataProvider.getUncollectedFeesDifference(startTimestamp, endTimestamp),
+        vaultDataProvider.getCollectedFees(startTimestamp, endTimestamp),
+      ]);
+
+    const totalFee0 = collectedFees.fee0 + uncollectedFeesDifference.fee0;
+    const totalFee1 = collectedFees.fee1 + uncollectedFeesDifference.fee1;
+
+    const fee0InUsd = this.convertFeeToUsd(totalFee0, token0.decimals, +token0UsdValue);
+    const fee1InUsd = this.convertFeeToUsd(totalFee1, token1.decimals, +token1UsdValue);
+
+    return fee0InUsd + fee1InUsd;
   }
 
   /**
@@ -102,23 +124,15 @@ export class VaultsService {
    * @param periodInMillis The period over which fees are calculated, in milliseconds.
    * @returns The total annualized fees in USD.
    */
-  private calculateAnnualizedFees(
-    uncollectedFeesDifference: VaultFees,
-    collectedFees: VaultFees,
-    token0: Token,
-    token1: Token,
-    token0UsdValue: number,
-    token1UsdValue: number,
-    periodInMillis: number,
-  ): number {
-    const totalFee0 = collectedFees.fee0 + uncollectedFeesDifference.fee0;
-    const totalFee1 = collectedFees.fee1 + uncollectedFeesDifference.fee1;
+  private async calculateAnnualizedFees(
+    vaultAddress: Address,
+    startTimestamp: number,
+    endTimestamp: number,
+  ): Promise<number> {
+    const totalFeesInUsd = await this.getTotalFeesInUsd(vaultAddress, startTimestamp, endTimestamp);
+    const periodInYears = (endTimestamp - startTimestamp) / MILLISECONDS_PER_YEAR;
 
-    const fee0InUsd = this.convertFeeToUsd(totalFee0, token0.decimals, token0UsdValue);
-    const fee1InUsd = this.convertFeeToUsd(totalFee1, token1.decimals, token1UsdValue);
-    const periodInYears = periodInMillis / MILLISECONDS_PER_YEAR;
-
-    return (fee0InUsd + fee1InUsd) / periodInYears;
+    return totalFeesInUsd / periodInYears;
   }
 
   private convertFeeToUsd(fee: bigint, decimals: string, price: number): number {
