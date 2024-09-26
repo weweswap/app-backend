@@ -30,11 +30,13 @@ export class ArrakisContractsService {
     blockNumber: number | bigint,
   ): Promise<VaultHistoricalMetadataDto> {
     const helperContract = this.getArrakisHelperContract();
+    const vaultContract = this.getVaultContract(vault.address);
 
     // make all calls at once, whilst batching request (per blockNumber) to evm
-    const [t0Price, t1Price, tokenPair, [holding]] = await Promise.all([
+    const [t0Price, t1Price, vaultTokenDecimals, tokenPair, [holding, totalSupply]] = await Promise.all([
       this.coingeckoService.getTokenUsdPrice(vault.token0CoingeckoName, Number(timestampsInMs)),
       this.coingeckoService.getTokenUsdPrice(vault.token1CoingeckoName, Number(timestampsInMs)),
+      this.getVaultTokenDecimals(vault.address),
       this.getTokens(vault.address),
       this.evmConnector.client.multicall({
         blockNumber: BigInt(blockNumber),
@@ -44,6 +46,10 @@ export class ArrakisContractsService {
             ...helperContract,
             functionName: "totalUnderlying",
             args: [vault.address],
+          },
+          {
+            ...vaultContract,
+            functionName: "totalSupply",
           },
         ],
         multicallAddress: this.configService.multicallV3Address,
@@ -60,7 +66,11 @@ export class ArrakisContractsService {
       .plus(holdings1.mul(Big(t1Price)))
       .toNumber();
 
-    return new VaultHistoricalMetadataDto(vault.address.toLowerCase(), tvlUsd, +t0Price, +t1Price);
+    const vaultTokenPrecision = 10 ** vaultTokenDecimals;
+    const vaultTokenSupply = Big(totalSupply.toString()).div(vaultTokenPrecision).toNumber();
+    const vaultTokenPriceUsd = tvlUsd > 0 && vaultTokenSupply > 0 ? tvlUsd / vaultTokenSupply : 0;
+
+    return new VaultHistoricalMetadataDto(vault.address.toLowerCase(), tvlUsd, vaultTokenPriceUsd, +t0Price, +t1Price);
   }
 
   @Memoize({

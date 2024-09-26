@@ -15,6 +15,9 @@ export class VaultHistoricalMetadata extends Document {
   tvlUsd: number;
 
   @Prop({ isRequired: true })
+  vaultTokenPrice: number;
+
+  @Prop({ isRequired: true })
   token0Price: number;
 
   @Prop({ isRequired: true })

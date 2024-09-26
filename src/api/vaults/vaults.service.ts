@@ -7,6 +7,9 @@ import { VaultsDataProvider } from "./vaults-data-provider/vaults-data-provider"
 import { VaultsPriceProvider } from "./vaults-price-provider/vaults-price-provider";
 import { MILLISECONDS_PER_WEEK, MILLISECONDS_PER_YEAR } from "../../shared/constants";
 import { VaultInfoResponseDto } from "../../dto/VaultInfoResponseDto";
+import { HistoricTvlDatapoint } from "../../dto/HistoricTvlDto";
+import { HistoricPriceDatapoint } from "../../dto/HistoricPriceDto";
+import { TimeFrame } from "../../dto/HistoricDataQueryParamsDto";
 
 @Injectable()
 export class VaultsService {
@@ -28,6 +31,18 @@ export class VaultsService {
     const [apr, feesPerDay] = await Promise.all([this.getFeeApr(vaultAddress), this.getFeesPerDay(vaultAddress)]);
 
     return new VaultInfoResponseDto(vaultAddress, apr, feesPerDay);
+  }
+
+  public async getHistoricTvl(vaultAddress: Address, timeframe: TimeFrame): Promise<HistoricTvlDatapoint[]> {
+    const [, vaultDataProvider] = this.getProviders(vaultAddress);
+
+    return await vaultDataProvider.getHistoricTvl(timeframe);
+  }
+
+  public async getHistoricPrice(vaultAddress: Address, timeframe: TimeFrame): Promise<HistoricPriceDatapoint[]> {
+    const [, vaultDataProvider] = this.getProviders(vaultAddress);
+
+    return await vaultDataProvider.getHistoricPrice(timeframe);
   }
 
   private getProviders(address: string): [VaultsPriceProvider, VaultsDataProvider] {
