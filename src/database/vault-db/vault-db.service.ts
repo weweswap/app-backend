@@ -6,6 +6,9 @@ import { CollectedVaultFeeEventDto } from "../db-models";
 import { VaultFees } from "../../shared/types/common";
 import { VaultHistoricalDataDocument, VaultHistoricalDocument } from "../schemas/VaultHistoricalData.schema";
 import { VaultHistoricalDataDto } from "../../shared/class/VaultHistoricalDataDto";
+import { Address } from "viem";
+import { HistoricTvlDatapoint } from "../../dto/HistoricTvlDto";
+import { HistoricPriceDatapoint } from "../../dto/HistoricPriceDto";
 
 @Injectable()
 export class VaultDbService {
@@ -162,7 +165,7 @@ export class VaultDbService {
   }
 
   public async saveVaultData(entry: VaultHistoricalDataDto): Promise<boolean> {
-    this.logger.debug(`Saving vault historical daily data: ${entry.metadata.vaultAddress}`);
+    this.logger.debug(`Saving vault historical hourly data: ${entry.metadata.vaultAddress}`);
 
     try {
       const createdVaultHistoricalData = new this.vaultsDataModel(entry);
@@ -179,6 +182,84 @@ export class VaultDbService {
         // Re-throw the error if it's not a duplicate key error
         throw e;
       }
+    }
+  }
+
+  public async getPricePointsOfVaultToken(
+    vaultAddress: Address,
+    timeFrameStartDate: Date,
+  ): Promise<HistoricPriceDatapoint[]> {
+    try {
+      const priceData = await this.vaultsDataModel
+        .aggregate([
+          {
+            $match: {
+              "metadata.vaultAddress": vaultAddress.toLowerCase(),
+              timestamp: { $gte: timeFrameStartDate },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              timestamp: 1,
+              vaultTokenPrice: "$metadata.vaultTokenPrice",
+            },
+          },
+        ])
+        .exec();
+
+      if (priceData.length === 0) {
+        this.logger.error("Price Data is empty", this.getPricePointsOfVaultToken.name);
+        return [];
+      }
+
+      return priceData.map(({ timestamp, vaultTokenPrice }) => {
+        const date = new Date(timestamp);
+        const unixTimestamp = Math.floor(date.getTime() / 1000);
+        return new HistoricPriceDatapoint(unixTimestamp, vaultTokenPrice);
+      });
+    } catch (error) {
+      this.logger.error("Error fetching Price points", this.getPricePointsOfVaultToken.name, error);
+      throw error;
+    }
+  }
+
+  public async getTvlPointsOfVaultToken(
+    vaultAddress: Address,
+    timeFrameStartDate: Date,
+  ): Promise<HistoricTvlDatapoint[]> {
+    try {
+      const tvlData = await this.vaultsDataModel
+        .aggregate([
+          {
+            $match: {
+              "metadata.vaultAddress": vaultAddress.toLowerCase(),
+              timestamp: { $gte: timeFrameStartDate },
+            },
+          },
+          {
+            $project: {
+              _id: 0,
+              timestamp: 1,
+              tvl: "$metadata.tvlUsd",
+            },
+          },
+        ])
+        .exec();
+
+      if (tvlData.length === 0) {
+        this.logger.error("TVL Data is empty", this.getTvlPointsOfVaultToken.name);
+        return [];
+      }
+
+      return tvlData.map(({ timestamp, tvl }) => {
+        const date = new Date(timestamp);
+        const unixTimestamp = Math.floor(date.getTime() / 1000);
+        return new HistoricTvlDatapoint(unixTimestamp, tvl);
+      });
+    } catch (error) {
+      this.logger.error("Error fetching TVL points", this.getTvlPointsOfVaultToken.name, error);
+      throw error;
     }
   }
 }

@@ -6,10 +6,12 @@ import { Erc20Service } from "../../../blockchain-connectors/erc-20/erc-20.servi
 import { VaultDbService } from "../../../database/vault-db/vault-db.service";
 import { FIVE_MINUTES_IN_MILLISECONDS, LP_PRESENTATION_DECIMALS } from "../../../shared/constants";
 import { Token, VaultFees } from "../../../shared/types/common";
-import { adjustPresentationDecimals } from "../../../utils/utils";
+import { adjustPresentationDecimals, getStartDateFromNow } from "../../../utils/utils";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
 import { arrakisVaultAbi } from "../../../abis/abi";
 import { ArrakisVaultConfig } from "../../../shared/class/WeweDataAggregatorConfig";
+import { TimeFrame } from "../../../dto/HistoricDataQueryParamsDto";
+import { HistoricTvlDatapoint } from "../../../dto/HistoricTvlDto";
 
 export class VaultsDataProvider {
   private readonly vaultConfig;
@@ -138,5 +140,19 @@ export class VaultsDataProvider {
   @Memoize()
   public async getDeploymentTimestamp(): Promise<number> {
     return Number(await this.archiveEvmConnector.getBlockTimestamp(BigInt(this.vaultConfig.startingBlock)));
+  }
+
+  public async getHistoricTvl(timeframe: TimeFrame): Promise<HistoricTvlDatapoint[]> {
+    const startDate = getStartDateFromNow(timeframe);
+    const tvlPoints = await this.dbService.getTvlPointsOfVaultToken(this.vaultAddress, startDate);
+
+    return tvlPoints;
+  }
+
+  public async getHistoricPrice(timeframe: TimeFrame) {
+    const startDate = getStartDateFromNow(timeframe);
+    const pricePoints = await this.dbService.getPricePointsOfVaultToken(this.vaultAddress, startDate);
+
+    return pricePoints;
   }
 }
