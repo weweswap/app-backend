@@ -3,7 +3,7 @@ import { ApiProperty } from "@nestjs/swagger";
 export class HistoricPriceDatapoint {
   @ApiProperty({
     description: "UNIX timestamp in seconds",
-    example: "1725235621",
+    example: 1725235621,
     type: Number,
   })
   timestamp: number;

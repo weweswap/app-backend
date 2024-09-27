@@ -15,6 +15,7 @@ import {
   ApiNotFoundResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from "@nestjs/swagger";
@@ -73,15 +74,42 @@ export class VaultsController {
     }
   }
 
-  //TODO: better validation and docs
+  //TODO: docs
   @Get("/tvl/:address")
+  @ApiOperation({
+    summary: "Get Historic TVL Data",
+    description:
+      "Retrieve historic Total Value Locked (TVL) data for a specific vault address within a specified timeframe.",
+  })
+  @ApiParam({
+    name: "address",
+    type: "string",
+    description: "Ethereum address of the vault.",
+    example: "0x1234567890abcdef1234567890abcdef12345678",
+  })
+  @ApiQuery({
+    name: "timeframe",
+    required: false,
+    type: String,
+    enum: ["daily", "weekly"],
+    description: "Timeframe for historic TVL data.",
+    example: "daily",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Successfully retrieved historic TVL data.",
+    type: [HistoricTvlDatapoint],
+  })
+  @ApiBadRequestResponse({
+    description: "Bad Request - Invalid parameters.",
+  })
+  @ApiNotFoundResponse({
+    description: "Vault Address not found.",
+  })
   @UsePipes(
     new ValidationPipe({
       transform: true,
-      whitelist: true, // Optionally strip unknown properties
-      forbidNonWhitelisted: true, // Optionally throw error on unknown properties
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      exceptionFactory: (errors) => new BadRequestException("Not a valid Ethereum Address"),
+      exceptionFactory: (errors) => new BadRequestException(`Bad Request: ${errors}`),
     }),
   )
   async getHistoricTvl(
@@ -97,15 +125,41 @@ export class VaultsController {
     }
   }
 
-  //TODO: better validation and docs
+  //TODO: docs
   @Get("/price/:address")
+  @ApiOperation({
+    summary: "Get Historic Price Data",
+    description: "Retrieve historic price data for a specific vault address within a specified timeframe.",
+  })
+  @ApiParam({
+    name: "address",
+    type: "string",
+    description: "Ethereum address of the vault.",
+    example: "0x1234567890abcdef1234567890abcdef12345678",
+  })
+  @ApiQuery({
+    name: "timeframe",
+    required: false,
+    type: String,
+    enum: ["daily", "weekly"],
+    description: "Timeframe for historic price data.",
+    example: "daily",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Successfully retrieved historic price data.",
+    type: [HistoricPriceDatapoint],
+  })
+  @ApiBadRequestResponse({
+    description: "Bad Request - Invalid parameters.",
+  })
+  @ApiNotFoundResponse({
+    description: "Vault Address not found.",
+  })
   @UsePipes(
     new ValidationPipe({
       transform: true,
-      whitelist: true, // Optionally strip unknown properties
-      forbidNonWhitelisted: true, // Optionally throw error on unknown properties
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      exceptionFactory: (errors) => new BadRequestException("Not a valid Ethereum Address"),
+      exceptionFactory: (errors) => new BadRequestException(`Bad Request: ${errors}`),
     }),
   )
   async getHistoricPrice(

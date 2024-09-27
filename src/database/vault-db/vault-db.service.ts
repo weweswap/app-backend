@@ -128,6 +128,16 @@ export class VaultDbService {
     }
   }
 
+  public async checkIfEntryExists(eventId: string): Promise<boolean> {
+    try {
+      const exists = await this.collectVaultFeeEventModel.exists({ _id: eventId.toLowerCase() });
+      return !!exists;
+    } catch (error) {
+      this.logger.error(`Error checking if entry exists for ID ${eventId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
   /**
    * Calculates the average Total Value Locked (TVL) in an Arrakis (lp management) vault within a specified time range.
    *
@@ -185,6 +195,7 @@ export class VaultDbService {
     }
   }
 
+  //TODO: can be refactored into one helper method with getTvlPointsOfVaultToken
   public async getPricePointsOfVaultToken(
     vaultAddress: Address,
     timeFrameStartDate: Date,
@@ -209,7 +220,7 @@ export class VaultDbService {
         .exec();
 
       if (priceData.length === 0) {
-        this.logger.error("Price Data is empty", this.getPricePointsOfVaultToken.name);
+        this.logger.warn("Price Data is empty", this.getPricePointsOfVaultToken.name);
         return [];
       }
 
@@ -248,7 +259,7 @@ export class VaultDbService {
         .exec();
 
       if (tvlData.length === 0) {
-        this.logger.error("TVL Data is empty", this.getTvlPointsOfVaultToken.name);
+        this.logger.warn("TVL Data is empty", this.getTvlPointsOfVaultToken.name);
         return [];
       }
 
