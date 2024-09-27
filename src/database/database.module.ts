@@ -4,6 +4,8 @@ import { VaultDbService } from "./vault-db/vault-db.service";
 import { CollectVaultFeeEventDocument, CollectVaultFeeEventSchema } from "./schemas/CollectedVaultFeeEvent.schema";
 import { VaultHistoricalDocument, VaultsHistoricalDocumentSchema } from "./schemas/VaultHistoricalData.schema";
 import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
+import { ProgressMetadataDocument, ProgressMetadataSchema } from "./schemas/ProgressMetadata";
+import { ProgressMetadataDbService } from "./progress-metadata/progress-metadata-db.service";
 
 @Module({
   imports: [
@@ -16,10 +18,14 @@ import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
         name: VaultHistoricalDocument.name,
         schema: VaultsHistoricalDocumentSchema,
       },
+      {
+        name: ProgressMetadataDocument.name,
+        schema: ProgressMetadataSchema,
+      },
     ]),
     WeweConfigModule,
   ],
-  providers: [Logger, VaultDbService],
-  exports: [VaultDbService],
+  providers: [Logger, VaultDbService, ProgressMetadataDbService],
+  exports: [VaultDbService, ProgressMetadataDbService],
 })
 export class DatabaseModule {}

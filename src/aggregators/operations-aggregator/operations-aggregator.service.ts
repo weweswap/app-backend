@@ -7,6 +7,9 @@ import { ArrakisOperationsHelperService } from "./operations-aggregator-helpers/
 import { LOGS_MAX_BLOCK_RANGE } from "../../shared/constants";
 import { Address } from "viem";
 import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
+import { ProgressMetadataDbService } from "../../database/progress-metadata/progress-metadata-db.service";
+import { ProgressMetadataDto } from "../../database/db-models";
+import { AggregationType } from "../../shared/enum/AggregationType";
 
 @Injectable()
 export class OperationsAggregatorService {
@@ -15,7 +18,8 @@ export class OperationsAggregatorService {
     private configService: WeweConfigService,
     private logger: Logger,
     private schedulerRegistry: SchedulerRegistry,
-    private vaultAggregatorService: ArrakisOperationsHelperService,
+    private arrakisVaultOperationsHelperService: ArrakisOperationsHelperService,
+    private progressMetadataDb: ProgressMetadataDbService,
   ) {}
 
   /**
@@ -107,10 +111,9 @@ export class OperationsAggregatorService {
   /**
    * Process logs and handle events accordingly.
    */
-  private async processLogs(logs: any[]): Promise<void> {
-    for (const log of logs) {
-      await this.getHandlerMethod(log);
-    }
+  private async processLogs(logs: SingleLogEvent[]): Promise<void> {
+    const processingPromises = logs.map((log) => this.getHandlerMethod(log));
+    await Promise.all(processingPromises);
   }
 
   /**
@@ -119,11 +122,30 @@ export class OperationsAggregatorService {
   private async getHandlerMethod(log: SingleLogEvent) {
     // handle the logs (derive log type, then call a specific operation handling method)
     if (isLpVaultCollectedFeesEvent(log)) {
-      await this.vaultAggregatorService.handleLogCollectedFeeEvent(log);
+      const exists = await this.arrakisVaultOperationsHelperService.checkIfEntryExists(log);
+      if (!exists) {
+        await this.arrakisVaultOperationsHelperService.handleLogCollectedFeeEvent(log);
+        await this.saveProgress(log.address, log.blockNumber);
+      } else {
+        this.logger.debug(
+          `Entry for address ${log.address} with hash ${log.transactionHash} already exists. Skipping.`,
+        );
+      }
     }
   }
 
+  /**
+   * Save progress metadata for each portfolio address and for all possible aggregation types of that specific product type.
+   */
+  private async saveProgress(address: Address, recentBlockNumber: bigint) {
+    this.logger.log("Saving progress metadata", this.saveProgress.name);
+    const addressLowerCase = address.toLowerCase();
+    await this.progressMetadataDb.saveProgressMetadata(
+      new ProgressMetadataDto(addressLowerCase, Number(recentBlockNumber), AggregationType.VAULT_COLLECTED_FEES_EVENT),
+    );
+  }
+
   private async getLowestFromBlocks(): Promise<Map<Address, bigint>> {
-    return await this.vaultAggregatorService.getFromBlocks();
+    return await this.arrakisVaultOperationsHelperService.getFromBlocks();
   }
 }

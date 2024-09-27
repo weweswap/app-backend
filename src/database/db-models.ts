@@ -1,3 +1,5 @@
+import { AggregationType } from "../shared/enum/AggregationType";
+
 export class CollectedVaultFeeEventMetadataDto {
   constructor(
     public vaultAddress: string,
@@ -13,5 +15,13 @@ export class CollectedVaultFeeEventDto {
     public _id: string,
     public timestamp: Date,
     public metadata: CollectedVaultFeeEventMetadataDto,
+  ) {}
+}
+
+export class ProgressMetadataDto {
+  constructor(
+    public address: string,
+    public lastBlockNumber: number,
+    public aggregationType: AggregationType,
   ) {}
 }
