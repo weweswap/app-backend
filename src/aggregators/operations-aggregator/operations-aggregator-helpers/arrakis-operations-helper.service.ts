@@ -40,12 +40,8 @@ export class ArrakisOperationsHelperService {
 
   public async checkIfEntryExists(log: SingleLogEvent) {
     const eventId = (log.transactionHash + log.logIndex).toLowerCase();
-    try {
-      const exists = await this.vaultDbService.checkIfEntryExists(eventId);
-      return exists;
-    } catch (error) {
-      throw error;
-    }
+    const exists = await this.vaultDbService.checkIfEntryExists(eventId);
+    return exists;
   }
 
   public async getFromBlocks(): Promise<Map<Address, bigint>> {
