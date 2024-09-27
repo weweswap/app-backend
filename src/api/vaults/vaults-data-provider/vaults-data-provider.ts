@@ -151,7 +151,7 @@ export class VaultsDataProvider {
 
   public async getHistoricPrice(timeframe: TimeFrame) {
     const startDate = getStartDateFromNow(timeframe);
-    const pricePoints = await this.dbService.getPricePointsOfVaultToken(this.vaultAddress, startDate);
+    const pricePoints = await this.dbService.getPricePointsOfToken0(this.vaultAddress, startDate);
 
     return pricePoints;
   }

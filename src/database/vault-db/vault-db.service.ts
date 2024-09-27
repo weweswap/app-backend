@@ -196,7 +196,7 @@ export class VaultDbService {
   }
 
   //TODO: can be refactored into one helper method with getTvlPointsOfVaultToken
-  public async getPricePointsOfVaultToken(
+  public async getPricePointsOfToken0(
     vaultAddress: Address,
     timeFrameStartDate: Date,
   ): Promise<HistoricPriceDatapoint[]> {
@@ -213,24 +213,24 @@ export class VaultDbService {
             $project: {
               _id: 0,
               timestamp: 1,
-              vaultTokenPrice: "$metadata.vaultTokenPrice",
+              token0Price: "$metadata.token0Price",
             },
           },
         ])
         .exec();
 
       if (priceData.length === 0) {
-        this.logger.warn("Price Data is empty", this.getPricePointsOfVaultToken.name);
+        this.logger.warn("Price Data is empty", this.getPricePointsOfToken0.name);
         return [];
       }
 
-      return priceData.map(({ timestamp, vaultTokenPrice }) => {
+      return priceData.map(({ timestamp, token0Price }) => {
         const date = new Date(timestamp);
         const unixTimestamp = Math.floor(date.getTime() / 1000);
-        return new HistoricPriceDatapoint(unixTimestamp, vaultTokenPrice);
+        return new HistoricPriceDatapoint(unixTimestamp, token0Price);
       });
     } catch (error) {
-      this.logger.error("Error fetching Price points", this.getPricePointsOfVaultToken.name, error);
+      this.logger.error("Error fetching Price points", this.getPricePointsOfToken0.name, error);
       throw error;
     }
   }

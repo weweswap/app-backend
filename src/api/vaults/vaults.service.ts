@@ -34,12 +34,14 @@ export class VaultsService {
   }
 
   public async getHistoricTvl(vaultAddress: Address, timeframe: TimeFrame): Promise<HistoricTvlDatapoint[]> {
+    this.logger.debug(this.getHistoricTvl.name, vaultAddress);
     const [, vaultDataProvider] = this.getProviders(vaultAddress);
 
     return await vaultDataProvider.getHistoricTvl(timeframe);
   }
 
   public async getHistoricPrice(vaultAddress: Address, timeframe: TimeFrame): Promise<HistoricPriceDatapoint[]> {
+    this.logger.debug(this.getHistoricPrice.name, vaultAddress);
     const [, vaultDataProvider] = this.getProviders(vaultAddress);
 
     return await vaultDataProvider.getHistoricPrice(timeframe);
