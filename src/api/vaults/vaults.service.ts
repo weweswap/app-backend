@@ -124,6 +124,12 @@ export class VaultsService {
     const totalFee0 = collectedFees.fee0 + uncollectedFeesDifference.fee0;
     const totalFee1 = collectedFees.fee1 + uncollectedFeesDifference.fee1;
 
+    if (totalFee0 < 0n || totalFee1 < 0n) {
+      this.logger.error(
+        `Negative total fees detected: totalFee0=${totalFee0}, totalFee1=${totalFee1}, startTimestamp=${startTimestamp}, endTimestamp=${endTimestamp}, uncollectedFeesDifference=${uncollectedFeesDifference.fee0} & ${uncollectedFeesDifference.fee1}, collectedFees=${collectedFees.fee0} & ${collectedFees.fee1}`,
+      );
+    }
+
     const fee0InUsd = this.convertFeeToUsd(totalFee0, token0.decimals, +token0UsdValue);
     const fee1InUsd = this.convertFeeToUsd(totalFee1, token1.decimals, +token1UsdValue);
 
