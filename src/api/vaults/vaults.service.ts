@@ -2,7 +2,7 @@ import { Logger, Injectable } from "@nestjs/common";
 import { VaultsDataProviderFactoryService } from "./vaults-data-provider/vaults-data-provider-factory.service";
 import { VaultsPriceProviderFactoryService } from "./vaults-price-provider/vaults-price-provider-factory.service";
 import { Address, formatUnits } from "viem";
-import { getEndOfPreviousDayTimestamp } from "../../utils/utils";
+import { getEndOfPreviousDayTimestamp, getLastFullHourTimestamp } from "../../utils/utils";
 import { VaultsDataProvider } from "./vaults-data-provider/vaults-data-provider";
 import { VaultsPriceProvider } from "./vaults-price-provider/vaults-price-provider";
 import { MILLISECONDS_PER_WEEK, MILLISECONDS_PER_YEAR } from "../../shared/constants";
@@ -95,7 +95,9 @@ export class VaultsService {
   private async getFeesPerDay(vaultAddress: Address): Promise<number> {
     //get timestamps for start of the day until now
     let startTimestamp = getEndOfPreviousDayTimestamp();
-    const endTimestamp = Date.now();
+    const endTimestamp = getLastFullHourTimestamp();
+
+    console.log(endTimestamp);
 
     const [, vaultDataProvider] = this.getProviders(vaultAddress);
 

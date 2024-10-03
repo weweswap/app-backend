@@ -8,6 +8,16 @@ export function getEndOfPreviousDayTimestamp(): number {
   return previousDay.getTime();
 }
 
+/**
+ * Returns the timestamp (in milliseconds) of the last full hour.
+ * For example, if the current time is 10:37, it returns 10:00.
+ */
+export function getLastFullHourTimestamp(): number {
+  const now = new Date();
+  now.setMinutes(0, 0, 0); // Set minutes, seconds, and milliseconds to zero
+  return now.getTime();
+}
+
 export function adjustPresentationDecimals(token: Token, presentationDecimals: number): Token {
   return {
     ...token,
