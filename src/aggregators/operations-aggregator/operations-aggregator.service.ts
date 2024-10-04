@@ -76,7 +76,10 @@ export class OperationsAggregatorService {
       return;
     }
 
-    let toBlock = lowestFromBlock + LOGS_MAX_BLOCK_RANGE;
+    let toBlock =
+      lowestFromBlock + LOGS_MAX_BLOCK_RANGE < recentBlockNumber
+        ? lowestFromBlock + LOGS_MAX_BLOCK_RANGE
+        : recentBlockNumber;
     const addresses = Array.from(fromBlocks.keys());
 
     this.logger.log(`Fetching events from ${lowestFromBlock} to ${toBlock}. Recent block: ${recentBlockNumber}`);
