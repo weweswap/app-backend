@@ -97,6 +97,9 @@ export class OperationsAggregatorService {
 
       // check if we've finished
       if (toBlock == recentBlockNumber) {
+        //save progress here in case we do not enter specific handler method before
+        const savePromises = addresses.map((address) => this.saveProgress(address, toBlock));
+        await Promise.all(savePromises);
         break;
       }
 
@@ -125,7 +128,6 @@ export class OperationsAggregatorService {
       const exists = await this.arrakisVaultOperationsHelperService.checkIfEntryExists(log);
       if (!exists) {
         await this.arrakisVaultOperationsHelperService.handleLogCollectedFeeEvent(log);
-        await this.saveProgress(log.address, log.blockNumber);
       } else {
         this.logger.debug(
           `Entry for address ${log.address} with hash ${log.transactionHash} already exists. Skipping.`,

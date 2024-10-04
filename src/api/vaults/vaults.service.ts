@@ -97,8 +97,6 @@ export class VaultsService {
     let startTimestamp = getEndOfPreviousDayTimestamp();
     const endTimestamp = getLastFullHourTimestamp();
 
-    console.log(endTimestamp);
-
     const [, vaultDataProvider] = this.getProviders(vaultAddress);
 
     // if vault deployment is after startTimestamp, we use timestamp from startingBlock env property
