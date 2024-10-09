@@ -84,15 +84,22 @@ export class WeweConfig {
   @IsEthereumAddress({ each: true })
   arrakisHelperAddress: string;
 
+  @ValidateIf((o) => o.arrakisVaults && o.arrakisVaults.length > 0)
+  @IsString()
+  @IsEthereumAddress({ each: true })
+  feeManagerAddress: string;
+
   constructor(
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
     arrakisVaults: ArrakisVaultConfig[],
     arrakisHelperAddress: string,
+    feeManagerAddress: string,
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
     this.arrakisVaults = arrakisVaults;
     this.arrakisHelperAddress = arrakisHelperAddress;
+    this.feeManagerAddress = feeManagerAddress;
   }
 }

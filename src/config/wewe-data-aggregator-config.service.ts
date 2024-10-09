@@ -25,6 +25,10 @@ export class WeweConfigService {
     return this._config.arrakisHelperAddress as Address;
   }
 
+  get feeManagerAddress(): Address {
+    return this._config.feeManagerAddress as Address;
+  }
+
   get multicallV3Address(): Address {
     return this._config.multicallV3Address;
   }
