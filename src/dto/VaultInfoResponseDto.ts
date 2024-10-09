@@ -23,9 +23,17 @@ export class VaultInfoResponseDto {
   })
   feesPerDay: number;
 
-  constructor(address: Address, feeApr: number, feesPerDay: number) {
+  @ApiProperty({
+    description: "Total incentives accumulated per day.",
+    example: 15,
+    type: Number,
+  })
+  incentivesPerDay: number;
+
+  constructor(address: Address, feeApr: number, feesPerDay: number, incentivesPerDay: number) {
     this.address = address;
     this.feeApr = feeApr;
     this.feesPerDay = feesPerDay;
+    this.incentivesPerDay = incentivesPerDay;
   }
 }

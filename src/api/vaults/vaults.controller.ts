@@ -74,7 +74,6 @@ export class VaultsController {
     }
   }
 
-  //TODO: docs
   @Get("/tvl/:address")
   @ApiOperation({
     summary: "Get Historic TVL Data",
@@ -125,7 +124,6 @@ export class VaultsController {
     }
   }
 
-  //TODO: docs
   @Get("/price/:address")
   @ApiOperation({
     summary: "Get Historic Price Data",
