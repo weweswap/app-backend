@@ -8,11 +8,11 @@ import { Erc20Service } from "../../../contract-connectors/erc-20/erc-20.service
 
 @Injectable()
 export class VaultsDataProviderFactoryService {
+  private readonly logger = new Logger(VaultsDataProviderFactoryService.name);
   private vaultsDataProviders: Map<string, VaultsDataProvider>;
 
   constructor(
     private configService: WeweConfigService,
-    private readonly logger: Logger,
     private readonly archiveEvmConnector: EvmConnectorService,
     private readonly erc20Service: Erc20Service,
     private readonly dbService: VaultDbService,

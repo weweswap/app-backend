@@ -128,12 +128,15 @@ export class VaultsDataProvider {
     const totalFeesInUsd = await this.getTotalFeesInUsd(startTimestamp, endTimestamp);
     const periodInYears = (endTimestamp - startTimestamp) / MILLISECONDS_PER_YEAR;
 
+    if (periodInYears === 0) {
+      return 0;
+    }
+
     return totalFeesInUsd / periodInYears;
   }
 
   /**
    * Calculates the fee-based APR for the given LP data and price providers and tokens.
-   * @param vaultAddress The address of the vault for which APR is to be calculated.
    * @returns A promise that resolves to the calculated APR as a number.
    */
   public async getFeeApr(): Promise<number> {
@@ -154,8 +157,7 @@ export class VaultsDataProvider {
 
   /**
    * Calculates the total accumulated fees in USD on this day.
-   * @param vaultAddress The address of the vault for which APR is to be calculated.
-   * @returns A promise that resolves to the accumulated fees in USD.
+   * @returns A promise that resolves to the accumulated fees in USDC.
    */
   public async getFeesPerDay(): Promise<number> {
     //get timestamps for start of the day until now

@@ -9,10 +9,9 @@ import { HistoricPriceDatapoint } from "../../dto/HistoricPriceDto";
 
 @Injectable()
 export class VaultDbService {
-  constructor(
-    @InjectModel(VaultHistoricalDocument.name) private vaultsDataModel: Model<VaultHistoricalDocument>,
-    private readonly logger: Logger,
-  ) {}
+  private readonly logger = new Logger(VaultDbService.name);
+
+  constructor(@InjectModel(VaultHistoricalDocument.name) private vaultsDataModel: Model<VaultHistoricalDocument>) {}
 
   public async getMostRecentVaultsDataTimestamp(vaultAddress: string): Promise<number | undefined> {
     const vaultHistoricalData: VaultHistoricalDataDocument[] | undefined = await this.vaultsDataModel

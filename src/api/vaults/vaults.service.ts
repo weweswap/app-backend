@@ -25,15 +25,19 @@ export class VaultsService {
   public async getVaultInfo(vaultAddress: Address): Promise<VaultInfoResponseDto> {
     this.logger.debug(this.getVaultInfo.name, vaultAddress);
     const vaultDataProvider = this.getDataProvider(vaultAddress);
+    try {
+      const [apr, feesPerDay, rate] = await Promise.all([
+        vaultDataProvider.getFeeApr(),
+        vaultDataProvider.getFeesPerDay(),
+        this.feeManagerContractService.getRate(),
+      ]);
+      const incentivesPerDay = feesPerDay * rate;
 
-    const [apr, feesPerDay, rate] = await Promise.all([
-      vaultDataProvider.getFeeApr(),
-      vaultDataProvider.getFeesPerDay(),
-      this.feeManagerContractService.getRate(),
-    ]);
-    const incentivesPerDay = feesPerDay * rate;
-
-    return new VaultInfoResponseDto(vaultAddress, apr, feesPerDay, incentivesPerDay);
+      return new VaultInfoResponseDto(vaultAddress, apr, feesPerDay, incentivesPerDay);
+    } catch (error) {
+      this.logger.error("Error retrieving vault info:", error);
+      throw error;
+    }
   }
 
   public async getHistoricTvl(vaultAddress: Address, timeframe: TimeFrame): Promise<HistoricTvlDatapoint[]> {

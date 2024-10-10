@@ -4,10 +4,11 @@ import { VaultAggregatorService } from "./vault-aggregator/vault-aggregator.serv
 
 @Injectable()
 export class AggregatorsService {
+  private readonly logger = new Logger(AggregatorsService.name);
+
   constructor(
     private eventsAggregatorService: EventsAggregatorService,
     private vaultAggregatorService: VaultAggregatorService,
-    private logger: Logger,
   ) {}
 
   public startAllAggregators(): void {

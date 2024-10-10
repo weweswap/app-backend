@@ -12,11 +12,12 @@ import { WeweConfigService } from "../../config/wewe-data-aggregator-config.serv
 
 @Injectable()
 export class VaultAggregatorService {
+  private readonly logger = new Logger(VaultAggregatorService.name);
+
   // counter responsible for adding up consecutive failures until we hit max limit
   private consecutiveFailCount = 0;
 
   constructor(
-    private readonly logger: Logger,
     private vaultDbService: VaultDbService,
     private evmConnector: EvmConnectorService,
     private arrakisContractService: ArrakisContractsService,

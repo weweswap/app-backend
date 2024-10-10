@@ -17,10 +17,11 @@ import { FeeManagerEventsHelperService } from "./events-aggregator-helpers/fee-m
 
 @Injectable()
 export class EventsAggregatorService {
+  private readonly logger = new Logger(EventsAggregatorService.name);
+
   constructor(
     private evmConnector: EvmConnectorService,
     private configService: WeweConfigService,
-    private logger: Logger,
     private schedulerRegistry: SchedulerRegistry,
     private feeManagerEventsHelperService: FeeManagerEventsHelperService,
     private progressMetadataDb: ProgressMetadataDbService,

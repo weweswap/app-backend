@@ -6,10 +6,11 @@ import { RewardsConvertedToUsdcEventDto } from "../db-models";
 
 @Injectable()
 export class RewardsConvertedToUsdcDbService {
+  private readonly logger = new Logger(RewardsConvertedToUsdcDbService.name);
+
   constructor(
     @InjectModel(RewardsConvertedToUsdcEventDocument.name)
     private rewardsConvertedToUsdcEventModel: Model<RewardsConvertedToUsdcEventDocument>,
-    private readonly logger: Logger,
   ) {}
 
   public async saveRewardsInUsdcEvent(value: RewardsConvertedToUsdcEventDto): Promise<boolean> {
@@ -25,8 +26,7 @@ export class RewardsConvertedToUsdcDbService {
         this.logger.warn("Duplicate key error. Ignoring.");
         return true;
       } else {
-        this.logger.error(`Failed to save  rewards in USDC event.. Error: ${JSON.stringify(e, null, 2)}`);
-
+        this.logger.error(`Failed to save rewards in USDC event. Error: ${JSON.stringify(e, null, 2)}`);
         // Re-throw the error if it's not a duplicate key error
         throw e;
       }

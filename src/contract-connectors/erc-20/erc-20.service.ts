@@ -10,8 +10,9 @@ import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/e
 
 @Injectable()
 export class Erc20Service {
+  private readonly logger = new Logger(Erc20Service.name);
+
   constructor(
-    private readonly logger: Logger,
     private readonly evmConnector: EvmConnectorService,
     private configService: WeweConfigService,
   ) {}
