@@ -3,10 +3,9 @@ import { AggregatorsService } from "./aggregators/aggregators.service";
 
 @Injectable()
 export class AppService implements OnApplicationBootstrap {
-  constructor(
-    private aggregatorsService: AggregatorsService,
-    private logger: Logger,
-  ) {
+  private readonly logger = new Logger(AppService.name);
+
+  constructor(private aggregatorsService: AggregatorsService) {
     this.logger.log("AppService constructor...");
   }
 

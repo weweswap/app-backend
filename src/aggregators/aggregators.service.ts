@@ -1,18 +1,19 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { OperationsAggregatorService } from "./operations-aggregator/operations-aggregator.service";
+import { EventsAggregatorService } from "./events-aggregator/events-aggregator.service";
 import { VaultAggregatorService } from "./vault-aggregator/vault-aggregator.service";
 
 @Injectable()
 export class AggregatorsService {
+  private readonly logger = new Logger(AggregatorsService.name);
+
   constructor(
-    private operationsAggregatorService: OperationsAggregatorService,
+    private eventsAggregatorService: EventsAggregatorService,
     private vaultAggregatorService: VaultAggregatorService,
-    private logger: Logger,
   ) {}
 
   public startAllAggregators(): void {
-    this.operationsAggregatorService.aggregateOperations().catch((e) => {
-      this.logger.error("operationsAggregatorService.aggregateOperations failed..");
+    this.eventsAggregatorService.aggregateEvents().catch((e) => {
+      this.logger.error("eventsAggregatorService.aggregateEvents failed..");
       throw e;
     });
     this.vaultAggregatorService.startAggregating().catch((e) => {

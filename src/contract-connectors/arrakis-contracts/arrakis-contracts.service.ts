@@ -7,10 +7,10 @@ import Big from "big.js";
 import { CoingeckoService } from "../../price-oracles/coingecko/coingecko.service";
 import { ONE_HOUR_IN_MILLISECONDS } from "../../shared/constants";
 import { ArrakisVaultConfig } from "../../shared/class/WeweDataAggregatorConfig";
-import { Erc20Service } from "../../blockchain-connectors/erc-20/erc-20.service";
 import { VaultHistoricalMetadataDto } from "../../shared/class/VaultHistoricalDataDto";
 import { ITokenPair } from "../../shared/interface/ITokenPair";
 import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
+import { Erc20Service } from "../erc-20/erc-20.service";
 
 /**
  * Service responsible for connecting to Arrakis Smart Contracts

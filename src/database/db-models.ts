@@ -1,20 +1,20 @@
 import { AggregationType } from "../shared/enum/AggregationType";
 
-export class CollectedVaultFeeEventMetadataDto {
+export class RewardsConvertedToUsdcEventMetadataDto {
   constructor(
     public vaultAddress: string,
-    public fee0: string,
-    public fee1: string,
+    public feeManagerAddress: string,
+    public feeInUsdc: string,
     public blockNumber: number,
     public txHash: string,
   ) {}
 }
 
-export class CollectedVaultFeeEventDto {
+export class RewardsConvertedToUsdcEventDto {
   constructor(
     public _id: string,
     public timestamp: Date,
-    public metadata: CollectedVaultFeeEventMetadataDto,
+    public metadata: RewardsConvertedToUsdcEventMetadataDto,
   ) {}
 }
 

@@ -1,3 +1,3 @@
 export enum AggregationType {
-  VAULT_COLLECTED_FEES_EVENT = "vault_collected_fees_event",
+  REWARDS_CONVERTED_TO_USDC_EVENT = "rewards_converted_to_usdc_event",
 }

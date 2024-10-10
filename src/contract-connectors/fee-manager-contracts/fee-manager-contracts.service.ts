@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/evm-connector.service";
 import { Memoize, MemoizeExpiring } from "typescript-memoize";
-import { getContract, GetContractReturnType, PublicClient } from "viem";
+import { Address, getContract, GetContractReturnType, PublicClient } from "viem";
 import { feeManagerAbi } from "../../abis/abi";
 import { ONE_HOUR_IN_MILLISECONDS } from "../../shared/constants";
 
@@ -22,6 +22,15 @@ export class FeeManagerContractsService {
     const rate = await feeManagerContract.read.rate();
 
     return Number(rate) / 100; // contract returns bigint with 2 decimals
+  }
+
+  /**
+   * Fetches the associated Arrakis vault address (LMv1 -> 1 feeManager per 1 vault)
+   */
+  @MemoizeExpiring(ONE_HOUR_IN_MILLISECONDS)
+  public async getVaultAddress(): Promise<Address> {
+    const feeManagerContract = this.getFeeManagerContract();
+    return await feeManagerContract.read.vault();
   }
 
   /**

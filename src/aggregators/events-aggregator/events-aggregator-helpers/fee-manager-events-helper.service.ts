@@ -1,46 +1,49 @@
 import { Injectable } from "@nestjs/common";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
-import { LpVaultCollectedFeesAbiEvent, SingleLogEvent } from "../../../shared/models/Types";
+import { RewardsConvertedToUsdcAbiEvent, SingleLogEvent } from "../../../shared/models/Types";
 import { Address, GetLogsReturnType } from "viem";
-import { CollectedVaultFeeEventDto, CollectedVaultFeeEventMetadataDto } from "../../../database/db-models";
-import { VaultDbService } from "../../../database/vault-db/vault-db.service";
+import { RewardsConvertedToUsdcEventDto, RewardsConvertedToUsdcEventMetadataDto } from "../../../database/db-models";
 import { WeweConfigService } from "../../../config/wewe-data-aggregator-config.service";
 import { ProgressMetadataDbService } from "../../../database/progress-metadata/progress-metadata-db.service";
 import { AggregationType } from "../../../shared/enum/AggregationType";
+import { FeeManagerContractsService } from "../../../contract-connectors/fee-manager-contracts/fee-manager-contracts.service";
+import { RewardsConvertedToUsdcDbService } from "../../../database/rewards-usdc-db/rewards-usdc-db.service";
 
 @Injectable()
-export class ArrakisOperationsHelperService {
+export class FeeManagerEventsHelperService {
   constructor(
     private evmConnector: EvmConnectorService,
+    private feeManagerContractService: FeeManagerContractsService,
     private configService: WeweConfigService,
-    private vaultDbService: VaultDbService,
+    private rewardsDbService: RewardsConvertedToUsdcDbService,
     private progressMetadataDb: ProgressMetadataDbService,
   ) {}
 
-  public async handleLogCollectedFeeEvent(
-    log: GetLogsReturnType<typeof LpVaultCollectedFeesAbiEvent>[number],
+  public async handleRewardsConvertedToUsdcEvent(
+    log: GetLogsReturnType<typeof RewardsConvertedToUsdcAbiEvent>[number],
   ): Promise<void> {
     const eventId = log.transactionHash + log.logIndex;
     const timestamp = await this.evmConnector.getBlockTimestamp(log.blockNumber);
+    const vaultAddress = await this.feeManagerContractService.getVaultAddress();
 
-    const collctedFeeEvent = new CollectedVaultFeeEventDto(
+    const rewardsConvertedToUsdcEvent = new RewardsConvertedToUsdcEventDto(
       eventId.toLowerCase(),
       new Date(Number(timestamp)),
-      new CollectedVaultFeeEventMetadataDto(
+      new RewardsConvertedToUsdcEventMetadataDto(
+        vaultAddress,
         log.address.toLowerCase(),
-        log.args.fee0?.toString() ?? "0",
-        log.args.fee1?.toString() ?? "0",
+        log.args.usdcAmount?.toString() ?? "0",
         Number(log.blockNumber),
         log.transactionHash,
       ),
     );
 
-    await this.vaultDbService.saveCollectedFeeEvent(collctedFeeEvent);
+    await this.rewardsDbService.saveRewardsInUsdcEvent(rewardsConvertedToUsdcEvent);
   }
 
   public async checkIfEntryExists(log: SingleLogEvent) {
     const eventId = (log.transactionHash + log.logIndex).toLowerCase();
-    const exists = await this.vaultDbService.checkIfEntryExists(eventId);
+    const exists = await this.rewardsDbService.checkIfEntryExists(eventId);
     return exists;
   }
 
@@ -51,7 +54,7 @@ export class ArrakisOperationsHelperService {
     for (const config of arrakisConfigs) {
       const lastProcessedBlock = await this.progressMetadataDb.getLastBlockNumber(
         config.address,
-        AggregationType.VAULT_COLLECTED_FEES_EVENT,
+        AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT,
       );
       const fromBlock = lastProcessedBlock !== undefined ? lastProcessedBlock + 1n : BigInt(config.startingBlock);
       fromBlocks.set(config.address, fromBlock);

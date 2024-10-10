@@ -18,6 +18,8 @@ import { WeweConfigService } from "../../config/wewe-data-aggregator-config.serv
 
 @Injectable()
 export class CoingeckoService {
+  private readonly logger = new Logger(CoingeckoService.name);
+
   // Map from coingecko token id to Set of timestamped prices
   private readonly tokenPriceHourlyCache = new Map<string, SortedSet.SortedSet<IPriceEntity>>();
 
@@ -29,7 +31,6 @@ export class CoingeckoService {
 
   constructor(
     private configService: WeweConfigService,
-    private readonly logger: Logger,
     private readonly httpService: HttpService,
   ) {}
 

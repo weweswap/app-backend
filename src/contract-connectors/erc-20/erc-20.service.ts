@@ -4,14 +4,15 @@ import { erc20Abi } from "viem";
 import { Memoize } from "typescript-memoize";
 import { Token } from "../../shared/types/common";
 import { NATIVE_TOKEN_CONTRACT_ADDRESS } from "../../shared/constants";
-import { EvmConnectorService } from "../evm-connector/evm-connector.service";
 import { ITokenPair } from "../../shared/interface/ITokenPair";
 import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
+import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/evm-connector.service";
 
 @Injectable()
 export class Erc20Service {
+  private readonly logger = new Logger(Erc20Service.name);
+
   constructor(
-    private readonly logger: Logger,
     private readonly evmConnector: EvmConnectorService,
     private configService: WeweConfigService,
   ) {}

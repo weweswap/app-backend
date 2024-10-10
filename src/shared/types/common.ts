@@ -1,8 +1,3 @@
-export interface VaultFees {
-  fee0: bigint;
-  fee1: bigint;
-}
-
 export interface ArrakisUnderlyingAmounts {
   amount0: bigint;
   amount1: bigint;

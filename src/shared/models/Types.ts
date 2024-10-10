@@ -1,12 +1,12 @@
 import { getAbiItem, GetLogsReturnType } from "viem";
-import { arrakisVaultAbi } from "../../abis/abi";
+import { feeManagerAbi } from "../../abis/abi";
 
-export const LpVaultCollectedFeesAbiEvent = getAbiItem({ abi: arrakisVaultAbi, name: "LogCollectedFees" });
+export const RewardsConvertedToUsdcAbiEvent = getAbiItem({ abi: feeManagerAbi, name: "RewardsConvertedToUsdc" });
 
-export type SingleLogEvent = GetLogsReturnType<typeof LpVaultCollectedFeesAbiEvent>[number];
+export type SingleLogEvent = GetLogsReturnType<typeof RewardsConvertedToUsdcAbiEvent>[number];
 
-export function isLpVaultCollectedFeesEvent(
+export function isRewardsConvertedToUsdcEvent(
   log: SingleLogEvent,
-): log is GetLogsReturnType<typeof LpVaultCollectedFeesAbiEvent>[number] {
-  return typeof log === "object" && log !== null && log.eventName == "LogCollectedFees";
+): log is GetLogsReturnType<typeof RewardsConvertedToUsdcAbiEvent>[number] {
+  return typeof log === "object" && log !== null && log.eventName == "RewardsConvertedToUsdc";
 }

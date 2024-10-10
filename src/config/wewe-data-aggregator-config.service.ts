@@ -6,12 +6,10 @@ import { MongoConfig } from "../shared/class/MongoConfig";
 
 @Injectable()
 export class WeweConfigService {
+  private readonly logger = new Logger(WeweConfigService.name);
   private readonly _config: WeweConfig;
 
-  constructor(
-    private configService: ConfigService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private configService: ConfigService) {
     const config = this.configService.get<WeweConfig>("config");
 
     if (!config) throw new Error("this.configService.get<IConfig>(config); is UNDEFINED!!!");

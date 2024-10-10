@@ -7,25 +7,26 @@ Current link: https://app-backend-production-676d.up.railway.app/docs
 
 This service is designed to handle two primary tasks:
 
-1. **Vault Aggregation**: 
-   - Listens to "LogCollectedFees" events and stores them in the database.
-   - Aggregates vault data daily and stores historical vault information (TVL).
+1. **Data Aggregation**: 
+   - Listens to "RewardsConvertedToUsdc" events and stores them in the database. The events are emitted by the fee manager contract.
+   - Aggregates vault data daily and stores historical vault information (TVL). Based on on-chain information of the vault contracts.
 
-2. **APR Calculation**:
-   - Provides an API endpoint to calculate and serve the APR (Annual Percentage Rate) based on collected vault fees and liquidity provider (LP) data.
+2. **API Endpoint**:
+   - Provides an API endpoint with vault information like address, apr, accumulated fees per day and accumulated incentives per day.
 
 ## Features
 
-### 1. Vault Fee Collection and Aggregation
+### 1. Rewards Collection and Aggregation
 
-- **Event Listener**: The service listens for `LogCollectedFees` events from Arrakis vault contracts, collects the necessary data, and stores it in the database for future APR calculations.
+- **Event Listener**: The service listens for `RewardsConvertedToUsdc` events from the fee manager contract and stores it in the database for future APR calculations.
   
 - **Daily Aggregation**: The service runs a daily job that fetches and stores historical vault data, like TVL Token0 and Token1 price.
 
-### 2. APR Calculation API
+### 2. Vault Information API
 
-- The APR is calculated with the generated fees and the average TVL over the last 7 days. (If the vault is younger than 7 days, timestamp from `startingBlock` env property is taken as `startTimestamp`)
-- The APR calculation takes into account both collected and uncollected fees within the time frame.
+- The APR is calculated with the collected rewards in USDC and the average TVL over the last 7 days. (If the vault is younger than 7 days, timestamp from `startingBlock` env property is taken as `startTimestamp`)
+- The fees per day is the accumulated USDC on the day of the request (data taken only from database).
+- The incentives per day is calculated using the `rate` parameter fetched from the fee manager contract multiplied with the fees per day.
 - The result is exposed via an API endpoint for external consumption.
 
 ## Project Structure
@@ -34,11 +35,11 @@ This service is designed to handle two primary tasks:
 src/
 ├── aggregators/
 │   ├── vault-aggregator/         # Handles daily vault data aggregation
-│   └── operations-aggregator/    # Handles listening to "LogCollectedFees" events
+│   └── events-aggregator/        # Handles listening to "RewardsConvertedToUsdc" events
 ├── api/
-│   └── lp/                       # API module for LP-related data, including APR calculations
-├── blockchain-connectors/        # Manages blockchain connectivity and provides ERC20 service
-├── contract-connectors/          # Services for interacting with contracts (eg. Arrakis)
+│   └── vaults/                   # API module for vault-related data, including APR calculations
+├── blockchain-connectors/        # Manages blockchain connectivity
+├── contract-connectors/          # Services for interacting with contracts (eg. Arrakis, ERC-20 and Fee Manager)
 ├── database/                     # MongoDB schemas and database interaction services
 ├── price-oracles/                # Price-Oracle service (Coingecko API)
 ├── config/                       # Configuration settings for the service
@@ -51,14 +52,14 @@ src/
 - **`src/aggregators/vault-aggregator/vault-aggregator.service.ts`**:
   - Aggregates vault historical data on a daily schedule and schedules for a daily job.
 
-- **`src/aggregators/operations-aggregator/operations-aggregator.service.ts`**:
-  - Aggregates historical `LogCollectedFees` events from startingBlock, then schedules an hourly sync job.
+- **`src/aggregators/events-aggregator/events-aggregator.service.ts`**:
+  - Aggregates historical `RewardsConvertedToUsdc` events from startingBlock, then schedules an hourly sync job.
 
-- **`src/api/lp/lp.service.ts`**:
-  - Handles APR calculation by interacting with price providers and data providers.
+- **`src/api/vault/vault.service.ts`**:
+  - Provides vault data to the controller request.
 
 - **`src/database/`**:
-  - Contains the MongoDB database schema for vault data (`CollectedVaultFeeEvent.schema.ts`, `VaultHistoricalData.schema.ts`).
+  - Contains the MongoDB database schema for vault data (`RewardsConvertedToUsdc.schema.ts`, `VaultHistoricalData.schema.ts`).
   
 - **`src/blockchain-connectors/`**:
   - Provides interaction with blockchain (EVM-based) connectors.
@@ -98,16 +99,14 @@ src/
 ### Vault Aggregation
 
 The vault aggregation logic starts automatically:
-- **Event Listening**: The service listens for new `LogCollectedFees` events and stores them in the database.
+- **Event Listening**: The service listens for new `RewardsConvertedToUsdc` events and stores them in the database.
 - **Daily Vault Info**: A scheduled job runs once a day to collect and store vault data.
 
-### APR Calculation
+### API
 
-The APR calculation is exposed via an API:
-- Use the API to retrieve the current APR based on the fees and vault data for a specific liquidity pool (LP).
+The vault information is exposed via an API:
 
 ## Further improvements
 - Split up data-aggregator & api, if api requests are growing
 - Share common contract calls between data-aggregator & api
   - /contract-connectors & /api/lp/lp-data-provider have lot of overlap
-- `LogCollectedFees` events are resynced from the startingBlock now with every restart -> resulting in lots of unncecessary node requests, but more certainty that all data is present
