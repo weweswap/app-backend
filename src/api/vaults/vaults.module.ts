@@ -1,7 +1,6 @@
 import { Logger, Module } from "@nestjs/common";
 import { VaultsService } from "./vaults.service";
 import { VaultsController } from "./vaults.controller";
-import { VaultsPriceProviderFactoryModule } from "./vaults-price-provider/vaults-price-provider-factory.module";
 import { VaultsDataProviderFactoryModule } from "./vaults-data-provider/vaults-data-provider-factory.module";
 import { HttpModule } from "@nestjs/axios";
 import { DatabaseModule } from "../../database/database.module";
@@ -14,7 +13,6 @@ import { ContractConnectorsModule } from "../../contract-connectors/contract-con
     HttpModule.register({
       timeout: 5000,
     }),
-    VaultsPriceProviderFactoryModule,
     VaultsDataProviderFactoryModule,
     BlockchainConnectorsModule,
     DatabaseModule,

@@ -4,7 +4,7 @@ import { Document } from "mongoose";
 @Schema({
   _id: false,
 })
-export class CollectVaultFeeEventMetadata extends Document {
+export class RewardsConvertedToUsdcEventMetadata extends Document {
   @Prop({
     type: String,
     isRequired: true,
@@ -15,14 +15,15 @@ export class CollectVaultFeeEventMetadata extends Document {
   @Prop({
     type: String,
     isRequired: true,
+    lowercase: true,
   })
-  fee0: string;
+  feeManagerAddress: string;
 
   @Prop({
     type: String,
     isRequired: true,
   })
-  fee1: string;
+  feeInUsdc: string;
 
   @Prop({
     type: Number,
@@ -37,14 +38,16 @@ export class CollectVaultFeeEventMetadata extends Document {
   txHash: string;
 }
 
-export const CollectVaultFeeEventMetadataSchema = SchemaFactory.createForClass(CollectVaultFeeEventMetadata);
+export const RewardsConvertedToUsdcEventMetadataSchema = SchemaFactory.createForClass(
+  RewardsConvertedToUsdcEventMetadata,
+);
 
 @Schema({
-  collection: "collectedVaultFeeEvents",
+  collection: "rewardsConvertedToUsdcEvents",
   autoCreate: true,
   autoIndex: true,
 })
-export class CollectVaultFeeEventDocument extends Document {
+export class RewardsConvertedToUsdcEventDocument extends Document {
   @Prop({
     type: String,
     isRequired: true,
@@ -59,11 +62,11 @@ export class CollectVaultFeeEventDocument extends Document {
   timestamp: Date;
 
   @Prop({
-    type: CollectVaultFeeEventMetadataSchema,
+    type: RewardsConvertedToUsdcEventMetadataSchema,
     isRequired: true,
   })
-  metadata: CollectVaultFeeEventMetadata;
+  metadata: RewardsConvertedToUsdcEventMetadata;
 }
 
-export const CollectVaultFeeEventSchema = SchemaFactory.createForClass(CollectVaultFeeEventDocument);
-CollectVaultFeeEventSchema.index({ timestamp: 1, "metadata.vaultAddress": 1 }, { unique: true });
+export const RewardsConvertedToUsdcEventSchema = SchemaFactory.createForClass(RewardsConvertedToUsdcEventDocument);
+RewardsConvertedToUsdcEventSchema.index({ timestamp: 1, "metadata.vaultAddress": 1 }, { unique: true });

@@ -1,5 +1,4 @@
 import { Logger, Module } from "@nestjs/common";
-import { Erc20Service } from "./erc-20/erc-20.service";
 import { EvmConnectorService } from "./evm-connector/evm-connector.service";
 import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
 import { WeweConfigService } from "../config/wewe-data-aggregator-config.service";
@@ -17,8 +16,7 @@ import { WeweConfigService } from "../config/wewe-data-aggregator-config.service
         return await service.initialize();
       },
     },
-    Erc20Service,
   ],
-  exports: [EvmConnectorService, Erc20Service],
+  exports: [EvmConnectorService],
 })
 export class BlockchainConnectorsModule {}

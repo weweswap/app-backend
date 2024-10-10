@@ -2,30 +2,34 @@ import { Injectable, Logger } from "@nestjs/common";
 import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/evm-connector.service";
 import { CronExpression, SchedulerRegistry } from "@nestjs/schedule";
 import { CronJob } from "cron";
-import { LpVaultCollectedFeesAbiEvent, SingleLogEvent, isLpVaultCollectedFeesEvent } from "../../shared/models/Types";
-import { ArrakisOperationsHelperService } from "./operations-aggregator-helpers/arrakis-operations-helper.service";
+import {
+  RewardsConvertedToUsdcAbiEvent,
+  SingleLogEvent,
+  isRewardsConvertedToUsdcEvent,
+} from "../../shared/models/Types";
 import { LOGS_MAX_BLOCK_RANGE } from "../../shared/constants";
 import { Address } from "viem";
 import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 import { ProgressMetadataDbService } from "../../database/progress-metadata/progress-metadata-db.service";
 import { ProgressMetadataDto } from "../../database/db-models";
 import { AggregationType } from "../../shared/enum/AggregationType";
+import { FeeManagerEventsHelperService } from "./events-aggregator-helpers/fee-manager-events-helper.service";
 
 @Injectable()
-export class OperationsAggregatorService {
+export class EventsAggregatorService {
   constructor(
     private evmConnector: EvmConnectorService,
     private configService: WeweConfigService,
     private logger: Logger,
     private schedulerRegistry: SchedulerRegistry,
-    private arrakisVaultOperationsHelperService: ArrakisOperationsHelperService,
+    private feeManagerEventsHelperService: FeeManagerEventsHelperService,
     private progressMetadataDb: ProgressMetadataDbService,
   ) {}
 
   /**
-   * Aggregate operations by synchronizing and scheduling events.
+   * Aggregate events by synchronizing aup until now and scheduling hourly sync job.
    */
-  public async aggregateOperations(): Promise<void> {
+  public async aggregateEvents(): Promise<void> {
     if (this.configService.allPortfolioAddresses.length > 0) {
       // sync all events from last sync block numbers to the current one
       this.logger.log("Syncing all events...");
@@ -41,7 +45,7 @@ export class OperationsAggregatorService {
    */
   private scheduleHourlySyncJob(): void {
     // hourly sync job ensures no events were missed
-    const jobName = OperationsAggregatorService.name + "-hourlySyncJob";
+    const jobName = EventsAggregatorService.name + "-hourlySyncJob";
 
     // only add cron job if it does not exist
     if (!this.schedulerRegistry.doesExist("cron", jobName)) {
@@ -50,7 +54,7 @@ export class OperationsAggregatorService {
       this.schedulerRegistry.addCronJob(jobName, job);
       job.start();
 
-      this.logger.debug("[OperationsAggregatorService] Scheduled syncAllEventsJob to run every hour!");
+      this.logger.debug("[EventsAggregatorService] Scheduled syncAllEventsJob to run every hour!");
     }
   }
 
@@ -80,7 +84,8 @@ export class OperationsAggregatorService {
       lowestFromBlock + LOGS_MAX_BLOCK_RANGE < recentBlockNumber
         ? lowestFromBlock + LOGS_MAX_BLOCK_RANGE
         : recentBlockNumber;
-    const addresses = Array.from(fromBlocks.keys());
+
+    const addresses = [this.configService.feeManagerAddress];
 
     this.logger.log(`Fetching events from ${lowestFromBlock} to ${toBlock}. Recent block: ${recentBlockNumber}`);
 
@@ -88,7 +93,7 @@ export class OperationsAggregatorService {
     while (lowestFromBlock < recentBlockNumber && toBlock <= recentBlockNumber) {
       const logs = (
         await this.evmConnector.client.getLogs({
-          events: [LpVaultCollectedFeesAbiEvent],
+          events: [RewardsConvertedToUsdcAbiEvent],
           fromBlock: lowestFromBlock,
           toBlock: toBlock,
           address: addresses,
@@ -127,10 +132,10 @@ export class OperationsAggregatorService {
    */
   private async getHandlerMethod(log: SingleLogEvent) {
     // handle the logs (derive log type, then call a specific operation handling method)
-    if (isLpVaultCollectedFeesEvent(log)) {
-      const exists = await this.arrakisVaultOperationsHelperService.checkIfEntryExists(log);
+    if (isRewardsConvertedToUsdcEvent(log)) {
+      const exists = await this.feeManagerEventsHelperService.checkIfEntryExists(log);
       if (!exists) {
-        await this.arrakisVaultOperationsHelperService.handleLogCollectedFeeEvent(log);
+        await this.feeManagerEventsHelperService.handleRewardsConvertedToUsdcEvent(log);
       } else {
         this.logger.debug(
           `Entry for address ${log.address} with hash ${log.transactionHash} already exists. Skipping.`,
@@ -146,11 +151,15 @@ export class OperationsAggregatorService {
     this.logger.log("Saving progress metadata", this.saveProgress.name);
     const addressLowerCase = address.toLowerCase();
     await this.progressMetadataDb.saveProgressMetadata(
-      new ProgressMetadataDto(addressLowerCase, Number(recentBlockNumber), AggregationType.VAULT_COLLECTED_FEES_EVENT),
+      new ProgressMetadataDto(
+        addressLowerCase,
+        Number(recentBlockNumber),
+        AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT,
+      ),
     );
   }
 
   private async getLowestFromBlocks(): Promise<Map<Address, bigint>> {
-    return await this.arrakisVaultOperationsHelperService.getFromBlocks();
+    return await this.feeManagerEventsHelperService.getFromBlocks();
   }
 }
