@@ -43,7 +43,8 @@ export class MergeController {
   @ApiResponse({
     status: 200,
     description: "Successfully retrieved chart information.",
-    type: [MergeChartDatapoint],
+    type: MergeChartDatapoint,
+    isArray: true,
   })
   @ApiNotFoundResponse({
     description: "Merge Coin not found",

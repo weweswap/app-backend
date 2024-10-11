@@ -7,10 +7,9 @@ import { PriceHistoricalDataDto } from "../../shared/class/PriceHistoricalDataDt
 
 @Injectable()
 export class PriceDbService {
-  constructor(
-    @InjectModel(PriceHistoricalDocument.name) private priceDataModel: Model<PriceHistoricalDocument>,
-    private readonly logger: Logger,
-  ) {}
+  private readonly logger = new Logger(PriceDbService.name);
+
+  constructor(@InjectModel(PriceHistoricalDocument.name) private priceDataModel: Model<PriceHistoricalDocument>) {}
 
   public async getMostRecentPriceDataTimestamp(coinId: string): Promise<number | undefined> {
     const priceHistoricalData: PriceHistoricalDataDocument[] | undefined = await this.priceDataModel
