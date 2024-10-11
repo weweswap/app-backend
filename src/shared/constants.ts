@@ -27,3 +27,5 @@ export const LP_PRESENTATION_DECIMALS = 4;
 export const COINGECKO_MAX_DAYS_FOR_HOURLY_DATA = 89;
 
 export const MAX_CONSECUTIVE_RETRY = 10;
+
+export const WEWE_COINGECKO_NAME = "upside-down-meme";

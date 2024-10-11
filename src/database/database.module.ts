@@ -6,6 +6,8 @@ import { VaultHistoricalDocument, VaultsHistoricalDocumentSchema } from "./schem
 import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
 import { ProgressMetadataDocument, ProgressMetadataSchema } from "./schemas/ProgressMetadata";
 import { ProgressMetadataDbService } from "./progress-metadata/progress-metadata-db.service";
+import { PriceHistoricalDocument, PriceHistoricalDocumentSchema } from "./schemas/PriceHistoricalData.schema";
+import { PriceDbService } from "./price-db/price-db.service";
 
 @Module({
   imports: [
@@ -22,10 +24,14 @@ import { ProgressMetadataDbService } from "./progress-metadata/progress-metadata
         name: ProgressMetadataDocument.name,
         schema: ProgressMetadataSchema,
       },
+      {
+        name: PriceHistoricalDocument.name,
+        schema: PriceHistoricalDocumentSchema,
+      },
     ]),
     WeweConfigModule,
   ],
-  providers: [Logger, VaultDbService, ProgressMetadataDbService],
-  exports: [VaultDbService, ProgressMetadataDbService],
+  providers: [Logger, VaultDbService, ProgressMetadataDbService, PriceDbService],
+  exports: [VaultDbService, ProgressMetadataDbService, PriceDbService],
 })
 export class DatabaseModule {}

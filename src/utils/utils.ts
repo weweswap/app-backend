@@ -53,6 +53,9 @@ export function getStartDateFromNow(timeframe: TimeFrame): Date {
     case TimeFrame.Weekly:
       timeFrameStartDate.setDate(now.getDate() - 7);
       break;
+    case TimeFrame.Monthly:
+      timeFrameStartDate.setMonth(now.getMonth() - 1);
+      break;
   }
 
   return timeFrameStartDate;

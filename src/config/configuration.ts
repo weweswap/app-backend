@@ -15,6 +15,7 @@ const config: Record<string, unknown> = {
   arrakisVaults: JSON.parse(process.env.ARRAKIS_VAULTS ?? ""),
   arrakisHelperAddress: process.env.ARRAKIS_HELPER_ADDRESS,
   feeManagerAddress: process.env.FEE_MANAGER_ADDRESS,
+  mergeCoins: JSON.parse(process.env.MERGE_COINS ?? ""),
 };
 
 export default registerAs("config", () => {
