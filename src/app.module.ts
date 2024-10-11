@@ -7,6 +7,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { VaultsModule } from "./api/vaults/vaults.module";
 import { WeweConfigModule } from "./config/wewe-data-aggregator-config.module";
 import { WeweConfigService } from "./config/wewe-data-aggregator-config.service";
+import { MergeModule } from "./api/merge/merge.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { WeweConfigService } from "./config/wewe-data-aggregator-config.service"
       inject: [WeweConfigService],
     }),
     VaultsModule,
+    MergeModule,
   ],
   controllers: [AppController],
   providers: [AppService, Logger],
