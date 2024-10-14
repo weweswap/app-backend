@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
 import { RewardsConvertedToUsdcAbiEvent, SingleLogEvent } from "../../../shared/models/Types";
 import { Address, GetLogsReturnType } from "viem";
@@ -11,6 +11,8 @@ import { RewardsConvertedToUsdcDbService } from "../../../database/rewards-usdc-
 
 @Injectable()
 export class FeeManagerEventsHelperService {
+  private readonly logger = new Logger(FeeManagerEventsHelperService.name);
+
   constructor(
     private evmConnector: EvmConnectorService,
     private feeManagerContractService: FeeManagerContractsService,
@@ -56,7 +58,20 @@ export class FeeManagerEventsHelperService {
         config.address,
         AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT,
       );
-      const fromBlock = lastProcessedBlock !== undefined ? lastProcessedBlock + 1n : BigInt(config.startingBlock);
+      let fromBlock: bigint;
+      if (lastProcessedBlock !== undefined) {
+        fromBlock = lastProcessedBlock + 1n;
+        this.logger.debug(
+          `Retrieved lastProcessedBlock ${lastProcessedBlock} for address ${config.address}, operation ${AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT}. ` +
+            `Setting fromBlock to ${fromBlock}.`,
+        );
+      } else {
+        fromBlock = BigInt(config.startingBlock);
+        this.logger.debug(
+          `No lastProcessedBlock found for address ${config.address}, operation ${AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT}. ` +
+            `Setting fromBlock to startingBlock ${fromBlock}.`,
+        );
+      }
       fromBlocks.set(config.address, fromBlock);
     }
 
