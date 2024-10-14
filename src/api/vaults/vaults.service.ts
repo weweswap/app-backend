@@ -7,6 +7,7 @@ import { HistoricTvlDatapoint } from "../../dto/HistoricTvlDto";
 import { HistoricPriceDatapoint } from "../../dto/HistoricPriceDto";
 import { TimeFrame } from "../../dto/HistoricDataQueryParamsDto";
 import { FeeManagerContractsService } from "../../contract-connectors/fee-manager-contracts/fee-manager-contracts.service";
+import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 
 @Injectable()
 export class VaultsService {
@@ -15,6 +16,7 @@ export class VaultsService {
   constructor(
     private lpDataProviderFactoryService: VaultsDataProviderFactoryService,
     private feeManagerContractService: FeeManagerContractsService,
+    private configService: WeweConfigService,
   ) {}
 
   /**
@@ -25,11 +27,13 @@ export class VaultsService {
   public async getVaultInfo(vaultAddress: Address): Promise<VaultInfoResponseDto> {
     this.logger.debug(this.getVaultInfo.name, vaultAddress);
     const vaultDataProvider = this.getDataProvider(vaultAddress);
+    const feeManagerAddress = this.configService.getfeeManagerAddress(vaultAddress);
+
     try {
       const [apr, feesPerDay, rate] = await Promise.all([
         vaultDataProvider.getFeeApr(),
         vaultDataProvider.getFeesPerDay(),
-        this.feeManagerContractService.getRate(),
+        this.feeManagerContractService.getRate(feeManagerAddress),
       ]);
       const incentivesPerDay = feesPerDay * rate;
 

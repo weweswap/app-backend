@@ -23,10 +23,6 @@ export class WeweConfigService {
     return this._config.arrakisHelperAddress as Address;
   }
 
-  get feeManagerAddress(): Address {
-    return this._config.feeManagerAddress as Address;
-  }
-
   get multicallV3Address(): Address {
     return this._config.multicallV3Address;
   }
@@ -79,6 +75,18 @@ export class WeweConfigService {
     return coingeckoId;
   }
 
+  getfeeManagerAddress(vault: Address): Address {
+    const feeManagerAddress = this.config.arrakisVaults.find(
+      (v) => v.address.toLowerCase() == vault.toLowerCase(),
+    )?.feeManager;
+
+    if (!feeManagerAddress) {
+      throw new Error(`Unable to find feeManager address for vault=${vault}. Make sure feeManager is added in config!`);
+    }
+
+    return feeManagerAddress;
+  }
+
   get arrakisVaultConfigs(): ArrakisVaultConfig[] {
     return this.config.arrakisVaults;
   }
@@ -95,5 +103,9 @@ export class WeweConfigService {
 
   get arrakisVaultsAddresses(): Address[] {
     return this.config.arrakisVaults.map((v) => v.address);
+  }
+
+  get feeManagerAddresses(): Address[] {
+    return this.config.arrakisVaults.map((v) => v.feeManager);
   }
 }

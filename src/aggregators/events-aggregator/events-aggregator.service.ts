@@ -86,12 +86,12 @@ export class EventsAggregatorService {
         ? lowestFromBlock + LOGS_MAX_BLOCK_RANGE
         : recentBlockNumber;
 
-    const addresses = [this.configService.feeManagerAddress];
-
-    this.logger.log(`Fetching events from ${lowestFromBlock} to ${toBlock}. Recent block: ${recentBlockNumber}`);
+    const addresses = this.configService.feeManagerAddresses;
 
     // fetch logs for logs max block range
     while (lowestFromBlock < recentBlockNumber && toBlock <= recentBlockNumber) {
+      this.logger.log(`Fetching events from ${lowestFromBlock} to ${toBlock}. Recent block: ${recentBlockNumber}`);
+
       const logs = (
         await this.evmConnector.client.getLogs({
           events: [RewardsConvertedToUsdcAbiEvent],
