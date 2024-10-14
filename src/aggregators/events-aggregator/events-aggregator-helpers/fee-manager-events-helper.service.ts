@@ -26,7 +26,7 @@ export class FeeManagerEventsHelperService {
   ): Promise<void> {
     const eventId = log.transactionHash + log.logIndex;
     const timestamp = await this.evmConnector.getBlockTimestamp(log.blockNumber);
-    const vaultAddress = await this.feeManagerContractService.getVaultAddress();
+    const vaultAddress = await this.feeManagerContractService.getVaultAddress(log.address.toLowerCase() as Address);
 
     const rewardsConvertedToUsdcEvent = new RewardsConvertedToUsdcEventDto(
       eventId.toLowerCase(),
@@ -55,20 +55,20 @@ export class FeeManagerEventsHelperService {
 
     for (const config of arrakisConfigs) {
       const lastProcessedBlock = await this.progressMetadataDb.getLastBlockNumber(
-        config.address,
+        config.feeManager,
         AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT,
       );
       let fromBlock: bigint;
       if (lastProcessedBlock !== undefined) {
         fromBlock = lastProcessedBlock + 1n;
         this.logger.debug(
-          `Retrieved lastProcessedBlock ${lastProcessedBlock} for address ${config.address}, operation ${AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT}. ` +
+          `Retrieved lastProcessedBlock ${lastProcessedBlock} for address ${config.feeManager}, operation ${AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT}. ` +
             `Setting fromBlock to ${fromBlock}.`,
         );
       } else {
         fromBlock = BigInt(config.startingBlock);
         this.logger.debug(
-          `No lastProcessedBlock found for address ${config.address}, operation ${AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT}. ` +
+          `No lastProcessedBlock found for address ${config.feeManager}, operation ${AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT}. ` +
             `Setting fromBlock to startingBlock ${fromBlock}.`,
         );
       }

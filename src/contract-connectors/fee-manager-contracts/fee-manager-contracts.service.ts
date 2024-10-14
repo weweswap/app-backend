@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/evm-connector.service";
 import { Memoize, MemoizeExpiring } from "typescript-memoize";
 import { Address, getContract, GetContractReturnType, PublicClient } from "viem";
@@ -8,17 +7,14 @@ import { ONE_HOUR_IN_MILLISECONDS } from "../../shared/constants";
 
 @Injectable()
 export class FeeManagerContractsService {
-  constructor(
-    private evmConnector: EvmConnectorService,
-    private configService: WeweConfigService,
-  ) {}
+  constructor(private evmConnector: EvmConnectorService) {}
 
   /**
    * Fetches incentive rate from feeManagerContract
    */
   @MemoizeExpiring(ONE_HOUR_IN_MILLISECONDS)
-  public async getRate(): Promise<number> {
-    const feeManagerContract = this.getFeeManagerContract();
+  public async getRate(feeManagerAddress: Address): Promise<number> {
+    const feeManagerContract = this.getFeeManagerContract(feeManagerAddress);
     const rate = await feeManagerContract.read.rate();
 
     return Number(rate) / 100; // contract returns bigint with 2 decimals
@@ -28,8 +24,8 @@ export class FeeManagerContractsService {
    * Fetches the associated Arrakis vault address (LMv1 -> 1 feeManager per 1 vault)
    */
   @MemoizeExpiring(ONE_HOUR_IN_MILLISECONDS)
-  public async getVaultAddress(): Promise<Address> {
-    const feeManagerContract = this.getFeeManagerContract();
+  public async getVaultAddress(feeManagerAddress: Address): Promise<Address> {
+    const feeManagerContract = this.getFeeManagerContract(feeManagerAddress);
     return await feeManagerContract.read.vault();
   }
 
@@ -39,9 +35,9 @@ export class FeeManagerContractsService {
    * @private
    */
   @Memoize()
-  private getFeeManagerContract(): GetContractReturnType<typeof feeManagerAbi, PublicClient> {
+  private getFeeManagerContract(feeManagerAddress: Address): GetContractReturnType<typeof feeManagerAbi, PublicClient> {
     return getContract({
-      address: this.configService.feeManagerAddress,
+      address: feeManagerAddress,
       abi: feeManagerAbi,
       client: this.evmConnector.client,
     });

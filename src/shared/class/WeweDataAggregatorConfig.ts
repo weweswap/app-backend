@@ -32,11 +32,22 @@ export class ArrakisVaultConfig {
   @IsNotEmpty()
   token1CoingeckoName: string;
 
-  constructor(address: Address, startingBlock: number, token0CoingeckoName: string, token1CoingeckoName: string) {
+  @Transform(({ value }) => value.toLowerCase() as Address, { toClassOnly: true })
+  @IsEthereumAddress()
+  feeManager: Address;
+
+  constructor(
+    address: Address,
+    startingBlock: number,
+    token0CoingeckoName: string,
+    token1CoingeckoName: string,
+    feeManager: Address,
+  ) {
     this.address = address;
     this.startingBlock = startingBlock;
     this.token0CoingeckoName = token0CoingeckoName;
     this.token1CoingeckoName = token1CoingeckoName;
+    this.feeManager = feeManager;
   }
 }
 
@@ -84,22 +95,15 @@ export class WeweConfig {
   @IsEthereumAddress({ each: true })
   arrakisHelperAddress: string;
 
-  @ValidateIf((o) => o.arrakisVaults && o.arrakisVaults.length > 0)
-  @IsString()
-  @IsEthereumAddress({ each: true })
-  feeManagerAddress: string;
-
   constructor(
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
     arrakisVaults: ArrakisVaultConfig[],
     arrakisHelperAddress: string,
-    feeManagerAddress: string,
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
     this.arrakisVaults = arrakisVaults;
     this.arrakisHelperAddress = arrakisHelperAddress;
-    this.feeManagerAddress = feeManagerAddress;
   }
 }
