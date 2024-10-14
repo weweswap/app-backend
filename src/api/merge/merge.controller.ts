@@ -15,7 +15,7 @@ import { MergeChartDatapoint } from "../../dto/MergeChartDto";
 import { GetMergeChartParamsDto } from "../../dto/GetMergeChartParamsDto";
 import { HistoricDataQueryParamsDto } from "../../dto/HistoricDataQueryParamsDto";
 
-@Controller("merge")
+@Controller("api/merge")
 export class MergeController {
   private readonly logger = new Logger(MergeController.name);
 
