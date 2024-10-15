@@ -14,6 +14,7 @@ const config: Record<string, unknown> = {
   mongoConfig: JSON.parse(process.env.MONGO_CONFIG ?? ""),
   arrakisVaults: JSON.parse(process.env.ARRAKIS_VAULTS ?? ""),
   arrakisHelperAddress: process.env.ARRAKIS_HELPER_ADDRESS,
+  mergeCoins: JSON.parse(process.env.MERGE_COINS ?? ""),
 };
 
 export default registerAs("config", () => {

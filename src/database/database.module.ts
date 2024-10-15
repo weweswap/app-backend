@@ -10,6 +10,8 @@ import {
   RewardsConvertedToUsdcEventSchema,
 } from "./schemas/RewardsConvertedToUsdcEvent.schema";
 import { RewardsConvertedToUsdcDbService } from "./rewards-usdc-db/rewards-usdc-db.service";
+import { PriceHistoricalDocument, PriceHistoricalDocumentSchema } from "./schemas/PriceHistoricalData.schema";
+import { PriceDbService } from "./price-db/price-db.service";
 
 @Module({
   imports: [
@@ -26,10 +28,14 @@ import { RewardsConvertedToUsdcDbService } from "./rewards-usdc-db/rewards-usdc-
         name: RewardsConvertedToUsdcEventDocument.name,
         schema: RewardsConvertedToUsdcEventSchema,
       },
+      {
+        name: PriceHistoricalDocument.name,
+        schema: PriceHistoricalDocumentSchema,
+      },
     ]),
     WeweConfigModule,
   ],
-  providers: [Logger, VaultDbService, ProgressMetadataDbService, RewardsConvertedToUsdcDbService],
-  exports: [VaultDbService, ProgressMetadataDbService, RewardsConvertedToUsdcDbService],
+  providers: [Logger, VaultDbService, ProgressMetadataDbService, RewardsConvertedToUsdcDbService, PriceDbService],
+  exports: [VaultDbService, ProgressMetadataDbService, RewardsConvertedToUsdcDbService, PriceDbService],
 })
 export class DatabaseModule {}

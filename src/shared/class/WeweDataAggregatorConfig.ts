@@ -66,6 +66,21 @@ export class TokenConfig {
   }
 }
 
+export class MergeCoinConfig {
+  @IsString()
+  @IsNotEmpty()
+  memeCoingeckoName: string;
+
+  @IsNumber()
+  @Min(0)
+  chartStartTimestamp: number;
+
+  constructor(memeCoingeckoName: string, chartStartTimestamp: number) {
+    this.memeCoingeckoName = memeCoingeckoName;
+    this.chartStartTimestamp = chartStartTimestamp;
+  }
+}
+
 export class WeweConfig {
   @IsString()
   @IsNotEmpty()
@@ -95,15 +110,23 @@ export class WeweConfig {
   @IsEthereumAddress({ each: true })
   arrakisHelperAddress: string;
 
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MergeCoinConfig)
+  mergeCoins: MergeCoinConfig[];
+
   constructor(
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
     arrakisVaults: ArrakisVaultConfig[],
     arrakisHelperAddress: string,
+    mergeCoins: MergeCoinConfig[],
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
     this.arrakisVaults = arrakisVaults;
     this.arrakisHelperAddress = arrakisHelperAddress;
+    this.mergeCoins = mergeCoins;
   }
 }

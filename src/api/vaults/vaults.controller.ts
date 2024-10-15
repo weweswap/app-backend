@@ -97,7 +97,8 @@ export class VaultsController {
   @ApiResponse({
     status: 200,
     description: "Successfully retrieved historic TVL data.",
-    type: [HistoricTvlDatapoint],
+    type: HistoricTvlDatapoint,
+    isArray: true,
   })
   @ApiBadRequestResponse({
     description: "Bad Request - Invalid parameters.",
@@ -146,7 +147,8 @@ export class VaultsController {
   @ApiResponse({
     status: 200,
     description: "Successfully retrieved historic price data.",
-    type: [HistoricPriceDatapoint],
+    type: HistoricPriceDatapoint,
+    isArray: true,
   })
   @ApiBadRequestResponse({
     description: "Bad Request - Invalid parameters.",

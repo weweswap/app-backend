@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Address } from "viem";
-import { ArrakisVaultConfig, WeweConfig } from "../shared/class/WeweDataAggregatorConfig";
+import { ArrakisVaultConfig, MergeCoinConfig, WeweConfig } from "../shared/class/WeweDataAggregatorConfig";
 import { MongoConfig } from "../shared/class/MongoConfig";
 
 @Injectable()
@@ -105,7 +105,11 @@ export class WeweConfigService {
     return this.config.arrakisVaults.map((v) => v.address);
   }
 
-  get feeManagerAddresses(): Address[] {
-    return this.config.arrakisVaults.map((v) => v.feeManager);
+  get mergeCoinConfigs(): MergeCoinConfig[] {
+    return this.config.mergeCoins;
+  }
+
+  get mergeCoinNames(): string[] {
+    return this.config.mergeCoins.map((v) => v.memeCoingeckoName);
   }
 }
