@@ -28,6 +28,11 @@ export class FeeManagerEventsHelperService {
     const timestamp = await this.evmConnector.getBlockTimestamp(log.blockNumber);
     const vaultAddress = await this.feeManagerContractService.getVaultAddress(log.address.toLowerCase() as Address);
 
+    if (!vaultAddress) {
+      this.logger.error(`Vault address not found for fee manager ${log.address.toLowerCase()}`);
+      throw new Error(`Vault address not found for fee manager ${log.address.toLowerCase()}`);
+    }
+
     const rewardsConvertedToUsdcEvent = new RewardsConvertedToUsdcEventDto(
       eventId.toLowerCase(),
       new Date(Number(timestamp)),
@@ -72,7 +77,7 @@ export class FeeManagerEventsHelperService {
             `Setting fromBlock to startingBlock ${fromBlock}.`,
         );
       }
-      fromBlocks.set(config.address, fromBlock);
+      fromBlocks.set(config.feeManager, fromBlock);
     }
 
     return fromBlocks;
