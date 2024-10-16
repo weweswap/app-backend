@@ -6,12 +6,10 @@ import { MongoConfig } from "../shared/class/MongoConfig";
 
 @Injectable()
 export class WeweConfigService {
+  private readonly logger = new Logger(WeweConfigService.name);
   private readonly _config: WeweConfig;
 
-  constructor(
-    private configService: ConfigService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private configService: ConfigService) {
     const config = this.configService.get<WeweConfig>("config");
 
     if (!config) throw new Error("this.configService.get<IConfig>(config); is UNDEFINED!!!");
@@ -23,10 +21,6 @@ export class WeweConfigService {
 
   get arrakisHelperAddress(): Address {
     return this._config.arrakisHelperAddress as Address;
-  }
-
-  get feeManagerAddress(): Address {
-    return this._config.feeManagerAddress as Address;
   }
 
   get multicallV3Address(): Address {
@@ -81,6 +75,18 @@ export class WeweConfigService {
     return coingeckoId;
   }
 
+  getfeeManagerAddress(vault: Address): Address {
+    const feeManagerAddress = this.config.arrakisVaults.find(
+      (v) => v.address.toLowerCase() == vault.toLowerCase(),
+    )?.feeManager;
+
+    if (!feeManagerAddress) {
+      throw new Error(`Unable to find feeManager address for vault=${vault}. Make sure feeManager is added in config!`);
+    }
+
+    return feeManagerAddress;
+  }
+
   get arrakisVaultConfigs(): ArrakisVaultConfig[] {
     return this.config.arrakisVaults;
   }
@@ -97,6 +103,10 @@ export class WeweConfigService {
 
   get arrakisVaultsAddresses(): Address[] {
     return this.config.arrakisVaults.map((v) => v.address);
+  }
+
+  get feeManagerAddresses(): Address[] {
+    return this.config.arrakisVaults.map((v) => v.feeManager);
   }
 
   get mergeCoinConfigs(): MergeCoinConfig[] {

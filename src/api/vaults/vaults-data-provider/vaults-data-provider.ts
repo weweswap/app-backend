@@ -1,17 +1,27 @@
-import { getContract } from "viem";
+import { formatUnits, getContract } from "viem";
 import { Memoize, MemoizeExpiring } from "typescript-memoize";
-import { ArrakisHelperService } from "./arrakis-helper.service";
-import { Logger } from "@nestjs/common";
-import { Erc20Service } from "../../../blockchain-connectors/erc-20/erc-20.service";
 import { VaultDbService } from "../../../database/vault-db/vault-db.service";
-import { FIVE_MINUTES_IN_MILLISECONDS, LP_PRESENTATION_DECIMALS } from "../../../shared/constants";
-import { Token, VaultFees } from "../../../shared/types/common";
-import { adjustPresentationDecimals, getStartDateFromNow } from "../../../utils/utils";
+import {
+  FIVE_MINUTES_IN_MILLISECONDS,
+  LP_PRESENTATION_DECIMALS,
+  MILLISECONDS_PER_WEEK,
+  MILLISECONDS_PER_YEAR,
+  USDC_DECIMALS,
+} from "../../../shared/constants";
+import { Token } from "../../../shared/types/common";
+import {
+  adjustPresentationDecimals,
+  getEndOfPreviousDayTimestamp,
+  getLastFullHourTimestamp,
+  getStartDateFromNow,
+} from "../../../utils/utils";
 import { EvmConnectorService } from "../../../blockchain-connectors/evm-connector/evm-connector.service";
 import { arrakisVaultAbi } from "../../../abis/abi";
 import { ArrakisVaultConfig } from "../../../shared/class/WeweDataAggregatorConfig";
 import { TimeFrame } from "../../../dto/HistoricDataQueryParamsDto";
 import { HistoricTvlDatapoint } from "../../../dto/HistoricTvlDto";
+import { RewardsConvertedToUsdcDbService } from "../../../database/rewards-usdc-db/rewards-usdc-db.service";
+import { Erc20Service } from "../../../contract-connectors/erc-20/erc-20.service";
 
 export class VaultsDataProvider {
   private readonly vaultConfig;
@@ -22,9 +32,8 @@ export class VaultsDataProvider {
     vaultConfig: ArrakisVaultConfig,
     private readonly archiveEvmConnector: EvmConnectorService,
     private readonly erc20Service: Erc20Service,
-    private readonly arrakisHelperService: ArrakisHelperService,
     private readonly dbService: VaultDbService,
-    private readonly logger: Logger,
+    private readonly rewardsInUsdcDbService: RewardsConvertedToUsdcDbService,
   ) {
     this.vaultConfig = vaultConfig;
     this.vaultAddress = vaultConfig.address;
@@ -59,57 +68,6 @@ export class VaultsDataProvider {
   }
 
   /**
-   * Calculates the difference in uncollected fees between two timestamps.
-   * Results are cached and expire after five minutes to balance performance and data freshness.
-   * @param startTimestamp The start timestamp for fee calculation.
-   * @param endTimestamp The end timestamp for fee calculation.
-   * @returns A promise that resolves to the VaultFees object representing the fee differences.
-   */
-  @Memoize({
-    expiring: FIVE_MINUTES_IN_MILLISECONDS,
-    hashFunction: (startTimestamp: number, endTimestamp: number) => {
-      return startTimestamp.toString() + ";" + endTimestamp.toString();
-    },
-  })
-  public async getUncollectedFeesDifference(startTimestamp: number, endTimestamp: number): Promise<VaultFees> {
-    let startFees: VaultFees;
-    let endFees: VaultFees;
-
-    const startBlockNumber = await this.archiveEvmConnector.getClosestBlocknumber(startTimestamp);
-    const endBlockNumber = await this.archiveEvmConnector.getClosestBlocknumber(endTimestamp);
-
-    try {
-      const tokenHoldings = await this.arrakisHelperService.getAllUnderlyingTokenHoldings(
-        this.vaultAddress,
-        startBlockNumber,
-      );
-      startFees = { fee0: tokenHoldings.fee0, fee1: tokenHoldings.fee1 };
-    } catch (e) {
-      this.logger.error(
-        `Error fetching startFees fees for address=${this.vaultAddress},timestamp ${startTimestamp}:`,
-        e,
-      );
-      startFees = { fee0: 0n, fee1: 0n };
-    }
-
-    try {
-      const tokenHoldings = await this.arrakisHelperService.getAllUnderlyingTokenHoldings(
-        this.vaultAddress,
-        endBlockNumber,
-      );
-      endFees = { fee0: tokenHoldings.fee0, fee1: tokenHoldings.fee1 };
-    } catch (e) {
-      this.logger.error(`Error fetching endFees fees for address=${this.vaultAddress},timestamp ${endTimestamp}:`, e);
-      endFees = { fee0: 0n, fee1: 0n };
-    }
-
-    const fee0Diff = endFees.fee0 - startFees.fee0;
-    const fee1Diff = endFees.fee1 - startFees.fee1;
-
-    return { fee0: fee0Diff, fee1: fee1Diff };
-  }
-
-  /**
    * Retrieves the sum of collected fees between two timestamps.
    * Results are cached and expire after five minutes to balance performance and data freshness.
    * @param startTimestamp The start timestamp for fee retrieval.
@@ -117,12 +75,16 @@ export class VaultsDataProvider {
    * @returns A promise that resolves to the VaultFees object representing the collected fees.
    */
   @MemoizeExpiring(FIVE_MINUTES_IN_MILLISECONDS)
-  public async getCollectedFees(startTimestamp: number, endTimestamp: number): Promise<VaultFees> {
-    const collectedFees = await this.dbService.getCollectedFeeSum(this.vaultAddress, startTimestamp, endTimestamp);
-    if (collectedFees) {
-      return collectedFees;
+  public async getRewardsConvertedToUsdc(startTimestamp: number, endTimestamp: number): Promise<bigint> {
+    const rewardsInUsdc = await this.rewardsInUsdcDbService.getRewardsInUsdcSum(
+      this.vaultAddress,
+      startTimestamp,
+      endTimestamp,
+    );
+    if (rewardsInUsdc) {
+      return rewardsInUsdc;
     }
-    return { fee0: 0n, fee1: 0n };
+    return 0n;
   }
 
   /**
@@ -154,5 +116,66 @@ export class VaultsDataProvider {
     const pricePoints = await this.dbService.getPricePointsOfToken0(this.vaultAddress, startDate);
 
     return pricePoints;
+  }
+
+  /**
+   * Calculates the annualized fees based on the rewards in USDC in the specified timeframe.
+   * @param startTimestamp The starting timestamp of the period.
+   * @param endTimestamp The ending timestamp of the period.
+   * @returns The total annualized fees in USD.
+   */
+  private async calculateAnnualizedFees(startTimestamp: number, endTimestamp: number): Promise<number> {
+    const totalFeesInUsd = await this.getTotalFeesInUsd(startTimestamp, endTimestamp);
+    const periodInYears = (endTimestamp - startTimestamp) / MILLISECONDS_PER_YEAR;
+
+    if (periodInYears === 0) {
+      return 0;
+    }
+
+    return totalFeesInUsd / periodInYears;
+  }
+
+  /**
+   * Calculates the fee-based APR for the given LP data and price providers and tokens.
+   * @returns A promise that resolves to the calculated APR as a number.
+   */
+  public async getFeeApr(): Promise<number> {
+    const endTimestamp = getEndOfPreviousDayTimestamp();
+    let startTimestamp = endTimestamp - MILLISECONDS_PER_WEEK; //weekly data
+
+    // if vault is younger than 7 days, we use timestamp from startingBlock env property
+    const deploymentTimestamp = await this.getDeploymentTimestamp();
+    if (startTimestamp <= deploymentTimestamp) {
+      startTimestamp = deploymentTimestamp;
+    }
+
+    const tvl = await this.getAverageTvl(startTimestamp, endTimestamp);
+    const annualizedFees = await this.calculateAnnualizedFees(startTimestamp, endTimestamp);
+
+    return (annualizedFees / tvl) * 100;
+  }
+
+  /**
+   * Calculates the total accumulated fees in USD on this day.
+   * @returns A promise that resolves to the accumulated fees in USDC.
+   */
+  public async getFeesPerDay(): Promise<number> {
+    //get timestamps for start of the day until now
+    let startTimestamp = getEndOfPreviousDayTimestamp();
+    const endTimestamp = getLastFullHourTimestamp();
+
+    // if vault deployment is after startTimestamp, we use timestamp from startingBlock env property
+    const deploymentTimestamp = await this.getDeploymentTimestamp();
+    if (startTimestamp <= deploymentTimestamp) {
+      startTimestamp = deploymentTimestamp;
+    }
+
+    return await this.getTotalFeesInUsd(startTimestamp, endTimestamp);
+  }
+
+  private async getTotalFeesInUsd(startTimestamp: number, endTimestamp: number): Promise<number> {
+    const collectedFees = await this.getRewardsConvertedToUsdc(startTimestamp, endTimestamp);
+
+    return Number(formatUnits(collectedFees, USDC_DECIMALS));
   }
 }

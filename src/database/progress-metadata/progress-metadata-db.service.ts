@@ -8,9 +8,10 @@ import { ProgressMetadataDto } from "../db-models";
 
 @Injectable()
 export class ProgressMetadataDbService {
+  private readonly logger = new Logger(ProgressMetadataDbService.name);
+
   constructor(
     @InjectModel(ProgressMetadataDocument.name) private progressMetadataModel: Model<ProgressMetadataDocument>,
-    private readonly logger: Logger,
   ) {}
 
   public async getLastBlockNumber(address: Address, operation: AggregationType): Promise<bigint | undefined> {

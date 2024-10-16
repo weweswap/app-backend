@@ -22,6 +22,8 @@ export const ONE_HOUR_IN_MILLISECONDS = 3_600_000;
 
 export const NATIVE_TOKEN_CONTRACT_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
+export const USDC_DECIMALS = 6;
+
 export const LP_PRESENTATION_DECIMALS = 4;
 
 export const COINGECKO_MAX_DAYS_FOR_HOURLY_DATA = 89;
