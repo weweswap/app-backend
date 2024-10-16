@@ -105,6 +105,10 @@ export class WeweConfigService {
     return this.config.arrakisVaults.map((v) => v.address);
   }
 
+  get feeManagerAddresses(): Address[] {
+    return this.config.arrakisVaults.map((v) => v.feeManager);
+  }
+
   get mergeCoinConfigs(): MergeCoinConfig[] {
     return this.config.mergeCoins;
   }

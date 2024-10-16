@@ -11,7 +11,6 @@ export class AggregatorsService {
     private eventsAggregatorService: EventsAggregatorService,
     private vaultAggregatorService: VaultAggregatorService,
     private priceAggregatorService: PriceAggregatorService,
-    private logger: Logger,
   ) {}
 
   public startAllAggregators(): void {
