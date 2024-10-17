@@ -110,6 +110,10 @@ export class WeweConfig {
   @IsEthereumAddress({ each: true })
   arrakisHelperAddress: string;
 
+  @ValidateIf((o) => o.arrakisVaults && o.arrakisVaults.length > 0)
+  @IsString()
+  @IsEthereumAddress({ each: true })
+  arrakisResolverAddress: string;
 
   @IsArray()
   @ValidateNested({ each: true })
@@ -121,12 +125,14 @@ export class WeweConfig {
     mongoConfig: MongoConfig,
     arrakisVaults: ArrakisVaultConfig[],
     arrakisHelperAddress: string,
+    arrakisResolverAddress: string,
     mergeCoins: MergeCoinConfig[],
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
     this.arrakisVaults = arrakisVaults;
     this.arrakisHelperAddress = arrakisHelperAddress;
+    this.arrakisResolverAddress = arrakisResolverAddress;
     this.mergeCoins = mergeCoins;
   }
 }

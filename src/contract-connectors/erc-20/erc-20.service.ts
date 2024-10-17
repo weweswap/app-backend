@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { Address, getContract, GetContractReturnType, PublicClient } from "viem";
 import { erc20Abi } from "viem";
 import { Memoize } from "typescript-memoize";
@@ -87,7 +87,7 @@ export class Erc20Service {
     }
   }
 
-  public async getErc20TokenTotalSupply(tokenAddress: Address): Promise<bigint | undefined> {
+  public async getErc20TokenTotalSupply(tokenAddress: Address): Promise<bigint> {
     try {
       const contract = getContract({
         address: tokenAddress,
@@ -96,9 +96,9 @@ export class Erc20Service {
       });
 
       return contract.read.totalSupply();
-    } catch (e: unknown) {
-      this.logger.error(`Can't get total supply for a token ${tokenAddress}`);
-      return undefined;
+    } catch (error) {
+      this.logger.error(`Error fetching decimals for token ${tokenAddress}: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to fetch decimals for token ${tokenAddress}`);
     }
   }
 

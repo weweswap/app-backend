@@ -23,6 +23,10 @@ export class WeweConfigService {
     return this._config.arrakisHelperAddress as Address;
   }
 
+  get arrakisResolverAddress(): Address {
+    return this._config.arrakisResolverAddress as Address;
+  }
+
   get multicallV3Address(): Address {
     return this._config.multicallV3Address;
   }
