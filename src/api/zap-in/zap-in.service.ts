@@ -256,6 +256,7 @@ export class ZapInService {
         swapAmount: tokenInAmount.toString(),
         swapFromToken: tokenInAddress,
         swapToToken: tokenOutAddress,
+        kyberSwapRoute: routeSummary,
         kyberSwapEncodedRoute: encodedRoute,
       };
     } catch (error) {
