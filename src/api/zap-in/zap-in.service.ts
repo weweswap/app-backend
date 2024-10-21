@@ -152,11 +152,27 @@ export class ZapInService {
         amountIn: amountIn,
       };
 
+      let requestStartTime = Date.now();
       this.logger.log(`Calling KyberSwap API with params: ${JSON.stringify(kyberSwapParams)}`);
 
-      const response: AxiosResponse = await firstValueFrom(
-        this.httpService.get(kyberSwapApiUrl, { params: kyberSwapParams }),
-      );
+      let response: AxiosResponse;
+      try {
+        response = await firstValueFrom(
+          this.httpService.get(kyberSwapApiUrl, {
+            params: kyberSwapParams,
+            "axios-retry": {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              onRetry: (retryCount, error, requestConfig) => {
+                console.log(`Retrying Kyberswap route request attempt ${retryCount}`);
+              },
+            },
+          }),
+        );
+      } finally {
+        const requestEndTime = Date.now();
+        const duration = requestEndTime - requestStartTime;
+        this.logger.debug(`GET request to ${kyberSwapApiUrl} completed in ${duration}ms`);
+      }
 
       if (response.status !== 200) {
         this.logger.error(`KyberSwap API responded with status ${response.status}`);
@@ -225,15 +241,31 @@ export class ZapInService {
       // Construct the build URL with the chain path parameter
       const buildRouteUrl = `https://aggregator-api.kyberswap.com/${chain}/api/v1/route/build`;
 
-      // Make the POST request to build the route
-      const buildRouteResponse: AxiosResponse = await firstValueFrom(
-        this.httpService.post(buildRouteUrl, buildRouteBody, {
-          headers: {
-            "Content-Type": "application/json",
-            //"x-client-id": this.configService.getKyberSwapClientId(), // Might be needed for production use?
-          },
-        }),
-      );
+      requestStartTime = Date.now();
+      this.logger.log(`Sending POST request to ${buildRouteUrl} with body: ${JSON.stringify(buildRouteBody)}`);
+
+      let buildRouteResponse: AxiosResponse;
+      try {
+        // Make the POST request to build the route
+        buildRouteResponse = await firstValueFrom(
+          this.httpService.post(buildRouteUrl, buildRouteBody, {
+            headers: {
+              "Content-Type": "application/json",
+              //"x-client-id": this.configService.getKyberSwapClientId(), // Might be needed for production use?
+            },
+            "axios-retry": {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              onRetry: (retryCount, error, requestConfig) => {
+                console.log(`Retrying Kyberswap build request attempt ${retryCount}`);
+              },
+            },
+          }),
+        );
+      } finally {
+        const requestEndTime = Date.now();
+        const duration = requestEndTime - requestStartTime;
+        this.logger.debug(`POST request to ${buildRouteUrl} completed in ${duration}ms`);
+      }
 
       if (buildRouteResponse.status !== 200) {
         this.logger.error(`KyberSwap Route Build API responded with status ${buildRouteResponse.status}`);

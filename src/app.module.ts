@@ -9,6 +9,8 @@ import { WeweConfigModule } from "./config/wewe-data-aggregator-config.module";
 import { WeweConfigService } from "./config/wewe-data-aggregator-config.service";
 import { MergeModule } from "./api/merge/merge.module";
 import { ZapInModule } from "./api/zap-in/zap-in.module";
+import { AxiosRetryModule } from "nestjs-axios-retry";
+import axiosRetry from "axios-retry";
 
 @Module({
   imports: [
@@ -22,6 +24,16 @@ import { ZapInModule } from "./api/zap-in/zap-in.module";
         dbName: configService.config.mongoConfig.dbName,
       }),
       inject: [WeweConfigService],
+    }),
+    AxiosRetryModule.forRoot({
+      axiosRetryConfig: {
+        retries: 5,
+        retryDelay: axiosRetry.exponentialDelay,
+        shouldResetTimeout: true,
+        retryCondition: (error) => {
+          return axiosRetry.isNetworkOrIdempotentRequestError(error);
+        },
+      },
     }),
     VaultsModule,
     MergeModule,
