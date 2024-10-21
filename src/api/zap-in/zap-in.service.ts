@@ -196,6 +196,7 @@ export class ZapInService {
       const chain = "base";
       const sender = "0x9377daBe42574cFB0BA202ed1A3a133C68fA1Bfd"; // TODO: get from config
       const recipient = sender; // Default to sender if not provided
+      const slippageTolerance = 500; // Default 5%
 
       // Prepare the request body
       const routeSummary = kyberSwapResult.data.routeSummary;
@@ -216,6 +217,7 @@ export class ZapInService {
         },
         sender: sender,
         recipient: recipient,
+        slippageTolerance: slippageTolerance,
       };
 
       this.logger.log(`Building KyberSwap Route with body: ${JSON.stringify(buildRouteBody)}`);
