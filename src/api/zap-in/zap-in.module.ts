@@ -9,7 +9,7 @@ import { PriceOraclesModule } from "../../price-oracles/price-oracles.module";
 @Module({
   imports: [
     HttpModule.register({
-      timeout: 10000,
+      timeout: 15000,
     }),
     WeweConfigModule,
     ContractConnectorsModule,
