@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
 import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 import { ArrakisContractsService } from "../../contract-connectors/arrakis-contracts/arrakis-contracts.service";
 import { CoingeckoService } from "../../price-oracles/coingecko/coingecko.service";
@@ -53,7 +53,7 @@ export class ZapInService {
         this.arrakisContractsService.getTokens(vaultAddress),
       ]).catch((error) => {
         this.logger.error(`Failed to fetch initial token data: ${error.message}`);
-        throw new BadRequestException("Failed to fetch token information");
+        throw new InternalServerErrorException("Failed to fetch token information");
       });
 
       const tokensWithCoingecko = this.combineTokenInfo(tokens, tokenInfo);
@@ -130,7 +130,7 @@ export class ZapInService {
     // Check for total USD value being zero
     if (totalUsdValue === 0) {
       this.logger.error("Total USD value is zero, cannot compute ratios");
-      throw new BadRequestException("Total USD value is zero, cannot compute ratios");
+      throw new InternalServerErrorException("Total USD value is zero, cannot compute ratios");
     }
 
     // Calculate ratios
@@ -199,7 +199,7 @@ export class ZapInService {
       return response;
     } catch (error) {
       this.logger.error("Failed to fetch KyberSwap route", error);
-      throw new BadRequestException("Failed to fetch swap route from KyberSwap");
+      throw new InternalServerErrorException("Failed to fetch swap route from KyberSwap");
     }
   }
 
@@ -253,8 +253,8 @@ export class ZapInService {
       );
       return mintAmounts;
     } catch (error) {
-      this.logger.error(`Failed to fetch updated mint amounts: ${error.message}`, error.stack);
-      throw new BadRequestException("Failed to update Arrakis mint amounts");
+      this.logger.error(`Failed to fetch updated mint amounts: ${error.message}`);
+      throw new InternalServerErrorException("Failed to update Arrakis mint amounts");
     }
   }
 
@@ -264,17 +264,7 @@ export class ZapInService {
 
     const buildRouteBody = {
       routeSummary: {
-        tokenIn: routeSummary.tokenIn,
-        amountIn: routeSummary.amountIn,
-        amountInUsd: routeSummary.amountInUsd,
-        tokenOut: routeSummary.tokenOut,
-        amountOut: routeSummary.amountOut,
-        amountOutUsd: routeSummary.amountOutUsd,
-        gas: routeSummary.gas,
-        gasPrice: routeSummary.gasPrice,
-        gasUsd: routeSummary.gasUsd,
-        extraFee: routeSummary.extraFee,
-        route: routeSummary.route,
+        ...routeSummary,
       },
       sender: this.kyberswapConfig.senderAddress,
       recipient: this.kyberswapConfig.recipientAddress,
@@ -287,13 +277,13 @@ export class ZapInService {
       const response = await this.makeHttpRequest<any>("POST", buildRouteUrl, { data: buildRouteBody });
       if (response.code !== 0) {
         this.logger.error(`KyberSwap Route Build API error: ${response.message}`);
-        throw new BadRequestException(`KyberSwap Route Build API error: ${response.message}`);
+        throw new InternalServerErrorException(`KyberSwap Route Build API error: ${response.message}`);
       }
       this.logger.debug(`KyberSwap Route Build result: ${JSON.stringify(response)}`);
       return response.data.data;
     } catch (error) {
       this.logger.error("Failed to build KyberSwap route", error);
-      throw new BadRequestException("Failed to build KyberSwap route");
+      throw new InternalServerErrorException("Failed to build KyberSwap route");
     }
   }
 
@@ -322,7 +312,7 @@ export class ZapInService {
             );
 
       if (response.status !== 200) {
-        throw new BadRequestException(`API responded with status ${response.status}`);
+        throw new InternalServerErrorException(`API responded with status ${response.status}`);
       }
 
       return response.data;
@@ -355,11 +345,11 @@ export class ZapInService {
   }
 
   private handleError(error: any, fallbackMessage: string): never {
-    this.logger.error(error.message, error.stack);
+    this.logger.error(error.message);
     if (error instanceof BadRequestException) {
       throw error;
     }
-    throw new BadRequestException(fallbackMessage);
+    throw new InternalServerErrorException(fallbackMessage);
   }
 
   private handleHttpError(error: any, url: string): never {
@@ -373,7 +363,7 @@ export class ZapInService {
       : `Request to ${url} failed: ${error.message}`;
 
     this.logger.error(`HTTP request failed: ${JSON.stringify(errorMessage)}`);
-    throw new BadRequestException(errorMessage);
+    throw new InternalServerErrorException(errorMessage);
   }
 
   private async processZapInRoute(
@@ -430,17 +420,17 @@ export class ZapInService {
 
   private validateKyberSwapResult(result: KyberSwapResponse): void {
     if (!result?.data?.routeSummary) {
-      throw new BadRequestException("Invalid KyberSwap response format");
+      throw new InternalServerErrorException("Invalid KyberSwap response format");
     }
 
     const { amountIn, amountOut, tokenIn, tokenOut } = result.data.routeSummary;
 
     if (!amountIn || !amountOut || !tokenIn || !tokenOut) {
-      throw new BadRequestException("Missing required fields in KyberSwap response");
+      throw new InternalServerErrorException("Missing required fields in KyberSwap response");
     }
 
     if (BigInt(amountOut) <= 0n) {
-      throw new BadRequestException("Invalid amount out from KyberSwap");
+      throw new InternalServerErrorException("Invalid amount out from KyberSwap");
     }
   }
 
@@ -461,8 +451,8 @@ export class ZapInService {
         token1CoingeckoId,
       };
     } catch (error) {
-      this.logger.error(`Failed to fetch token info for vault ${vaultAddress}: ${error.message}`, error.stack);
-      throw new BadRequestException("Failed to fetch token information");
+      this.logger.error(`Failed to fetch token info for vault ${vaultAddress}: ${error.message}`);
+      throw new InternalServerErrorException("Failed to fetch token information");
     }
   }
 
@@ -488,7 +478,7 @@ export class ZapInService {
       };
     } catch (error) {
       this.logger.error(`Failed to combine token info: ${error.message}`);
-      throw new BadRequestException("Failed to process token information");
+      throw new InternalServerErrorException("Failed to process token information");
     }
   }
 
@@ -523,8 +513,8 @@ export class ZapInService {
 
       return await this.calculateTokenAmounts(dto, tokens, inputTokenLower === token0Lower);
     } catch (error) {
-      this.logger.error(`Failed to determine token amounts: ${error.message}`, error.stack);
-      throw new BadRequestException(`Failed to determine token amounts: ${error.message}`);
+      this.logger.error(`Failed to determine token amounts: ${error.message}`);
+      throw new InternalServerErrorException(`Failed to determine token amounts: ${error.message}`);
     }
   }
 
@@ -574,8 +564,8 @@ export class ZapInService {
         };
       }
     } catch (error) {
-      this.logger.error(`Failed to calculate token amounts: ${error.message}`, error.stack);
-      throw new BadRequestException("Failed to calculate token amounts");
+      this.logger.error(`Failed to calculate token amounts: ${error.message}`);
+      throw new InternalServerErrorException("Failed to calculate token amounts");
     }
   }
 
@@ -590,7 +580,7 @@ export class ZapInService {
       return totalSupply;
     } catch (error) {
       this.logger.error(`Failed to fetch max amount for token ${tokenAddress}: ${error.message}`);
-      throw new BadRequestException(`Failed to fetch token supply for ${tokenAddress}`);
+      throw new InternalServerErrorException(`Failed to fetch token supply for ${tokenAddress}`);
     }
   }
 }
