@@ -11,19 +11,28 @@ import { KyberSwapResponse } from "../../shared/types/kyberswap";
 import { Erc20Service } from "../../contract-connectors/erc-20/erc-20.service";
 import { IToken } from "../../shared/interface/IToken";
 import { ITokenPair } from "../../shared/interface/ITokenPair";
+import { KyberswapConfig } from "../../shared/class/KyberswapConfig";
 
 interface TokenWithCoingecko extends IToken {
   coinGeckoId: string; // e.g., "ethereum", "dai"
 }
 
+interface TokenInfo {
+  token0CoingeckoId: string;
+  token1CoingeckoId: string;
+}
+
+interface TokenAmounts {
+  amount0Max: bigint;
+  amount1Max: bigint;
+  inputToken: TokenWithCoingecko;
+  outputToken: TokenWithCoingecko;
+}
+
 @Injectable()
 export class ZapInService {
   private readonly logger = new Logger(ZapInService.name);
-
-  private static readonly KYBERSWAP_API_URL = "https://aggregator-api.kyberswap.com";
-  private static readonly KYBERSWAP_CHAIN = "base";
-  private static readonly DEFAULT_SENDER = "0x9377daBe42574cFB0BA202ed1A3a133C68fA1Bfd"; // Consider moving to config
-  private static readonly DEFAULT_SLIPPAGE_TOLERANCE = 500; // 5%
+  private readonly kyberswapConfig: KyberswapConfig;
 
   constructor(
     private readonly configService: WeweConfigService,
@@ -31,125 +40,46 @@ export class ZapInService {
     private readonly coingeckoService: CoingeckoService,
     private readonly httpService: HttpService,
     private readonly erc20Service: Erc20Service,
-  ) {}
+  ) {
+    this.kyberswapConfig = this.configService.kyberswapConfig;
+  }
 
   public async getZapInRoute(zapInRouteBodyDto: GetZapInRouteBodyDto) {
     try {
       const vaultAddress = zapInRouteBodyDto.vaultAddress as Address;
-      this.validateInputToken(zapInRouteBodyDto.inputToken, vaultAddress);
 
-      const [token0CoingeckoId, token1CoingeckoId, tokens] = await Promise.all([
-        this.configService.getArrakisVaultToken0CoingeckoId(vaultAddress),
-        this.configService.getArrakisVaultToken1CoingeckoId(vaultAddress),
+      const [tokenInfo, tokens] = await Promise.all([
+        this.fetchTokenInfo(vaultAddress),
         this.arrakisContractsService.getTokens(vaultAddress),
-      ]);
+      ]).catch((error) => {
+        this.logger.error(`Failed to fetch initial token data: ${error.message}`);
+        throw new BadRequestException("Failed to fetch token information");
+      });
 
-      const tokensWithCoingecko: ITokenPair & {
-        token0: TokenWithCoingecko;
-        token1: TokenWithCoingecko;
-      } = {
-        token0: { ...tokens.token0, coinGeckoId: token0CoingeckoId },
-        token1: { ...tokens.token1, coinGeckoId: token1CoingeckoId },
-      };
+      const tokensWithCoingecko = this.combineTokenInfo(tokens, tokenInfo);
+      await this.validateInput(zapInRouteBodyDto, tokensWithCoingecko);
 
-      const { amount0Max, amount1Max, inputToken, outputToken } = await this.determineTokenAmounts(
-        zapInRouteBodyDto,
-        tokensWithCoingecko,
-      );
+      const amounts = await this.determineTokenAmounts(zapInRouteBodyDto, tokensWithCoingecko);
 
-      const arrakisResult = await this.fetchArrakisMintAmounts(vaultAddress, amount0Max, amount1Max);
-
-      const [token0Price, token1Price] = await this.fetchTokenPrices(
-        tokensWithCoingecko.token0,
-        tokensWithCoingecko.token1,
-      );
-
-      const { ratioToken0, ratioToken1 } = this.calculateRatio(
-        arrakisResult,
-        tokensWithCoingecko,
-        +token0Price,
-        +token1Price,
-      );
-
-      const { tokenInAddress, tokenOutAddress, tokenInAmount } = this.calculateSwapAmounts(
-        inputToken,
-        outputToken,
-        tokensWithCoingecko,
-        ratioToken0,
-        ratioToken1,
-        +token0Price,
-        +token1Price,
-        amount0Max,
-        amount1Max,
-      );
-
-      const kyberSwapResult = await this.fetchKyberSwapRoute(tokenInAddress, tokenOutAddress, tokenInAmount);
-
-      const arrakisResultUpdated = await this.updateArrakisMintAmounts(
-        vaultAddress,
-        amount0Max,
-        amount1Max,
-        kyberSwapResult,
-        tokensWithCoingecko,
-      );
-
-      const encodedRoute = await this.buildKyberSwapRoute(kyberSwapResult, ZapInService.DEFAULT_SENDER);
-
-      return this.constructResponse(
-        arrakisResultUpdated,
-        tokenInAmount,
-        tokenInAddress,
-        tokenOutAddress,
-        kyberSwapResult,
-        encodedRoute,
-      );
+      return await this.processZapInRoute(vaultAddress, amounts, tokensWithCoingecko);
     } catch (error) {
       this.handleError(error, "Failed to get Zap In route");
     }
   }
 
-  private validateInputToken(inputToken: string, vaultAddress: Address) {
-    if (!inputToken || !vaultAddress) {
-      throw new BadRequestException("Invalid input token or vault address");
-    }
-  }
-
-  private async determineTokenAmounts(
+  private async validateInput(
     dto: GetZapInRouteBodyDto,
     tokens: ITokenPair & {
       token0: TokenWithCoingecko;
       token1: TokenWithCoingecko;
     },
-  ): Promise<{
-    amount0Max: bigint;
-    amount1Max: bigint;
-    inputToken: TokenWithCoingecko;
-    outputToken: TokenWithCoingecko;
-  }> {
-    const inputTokenLower = dto.inputToken.toLowerCase();
-    const token0Lower = tokens.token0.coinGeckoId.toLowerCase();
-    const token1Lower = tokens.token1.coinGeckoId.toLowerCase();
+  ): Promise<void> {
+    if (dto.inputToken !== tokens.token0.coinGeckoId && dto.inputToken !== tokens.token1.coinGeckoId) {
+      throw new BadRequestException("Invalid input token or vault address - does not match token0 or token1");
+    }
 
-    if (inputTokenLower === token0Lower) {
-      const amount0Max = BigInt(dto.tokenInAmount);
-      const amount1Max = await this.erc20Service.getErc20TokenTotalSupply(tokens.token1.address as Address);
-      return {
-        amount0Max,
-        amount1Max,
-        inputToken: tokens.token0,
-        outputToken: tokens.token1,
-      };
-    } else if (inputTokenLower === token1Lower) {
-      const amount1Max = BigInt(dto.tokenInAmount);
-      const amount0Max = await this.erc20Service.getErc20TokenTotalSupply(tokens.token0.address as Address);
-      return {
-        amount0Max,
-        amount1Max,
-        inputToken: tokens.token1,
-        outputToken: tokens.token0,
-      };
-    } else {
-      throw new BadRequestException("Unsupported input token");
+    if (BigInt(dto.tokenInAmount) <= 0n) {
+      throw new BadRequestException("Token amount must be greater than 0");
     }
   }
 
@@ -183,13 +113,11 @@ export class ZapInService {
   ) {
     // Format and parse amount0
     const formattedAmount0Str = formatUnits(arrakisResult[0], tokens.token0.decimals);
-    this.logger.debug(`Formatted Amount0 String: ${formattedAmount0Str}`);
     const formattedAmount0 = parseFloat(formattedAmount0Str);
     this.logger.debug(`Parsed Amount0: ${formattedAmount0}`);
 
     // Format and parse amount1
     const formattedAmount1Str = formatUnits(arrakisResult[1], tokens.token1.decimals);
-    this.logger.debug(`Formatted Amount1 String: ${formattedAmount1Str}`);
     const formattedAmount1 = parseFloat(formattedAmount1Str);
     this.logger.debug(`Parsed Amount1: ${formattedAmount1}`);
 
@@ -261,7 +189,7 @@ export class ZapInService {
   }
 
   private async fetchKyberSwapRoute(tokenIn: string, tokenOut: string, amountIn: bigint): Promise<KyberSwapResponse> {
-    const kyberSwapApiUrl = `${ZapInService.KYBERSWAP_API_URL}/base/api/v1/routes`;
+    const kyberSwapApiUrl = `${this.kyberswapConfig.url}/base/api/v1/routes`;
     const params = { tokenIn, tokenOut, amountIn: amountIn.toString() };
 
     this.logger.debug(`Fetching KyberSwap route with params: ${JSON.stringify(params)}`);
@@ -285,19 +213,15 @@ export class ZapInService {
       token1: TokenWithCoingecko;
     },
   ): Promise<readonly [bigint, bigint, bigint]> {
-    // Log the incoming parameters
-    this.logger.debug(`Updating Arrakis mint amounts for vault: ${vault}`);
     this.logger.debug(`Initial amount0Max: ${amount0Max.toString()}, amount1Max: ${amount1Max.toString()}`);
 
-    // Extract and log the amountOut from KyberSwap result
+    // Extract the amountOut from KyberSwap result
     const amountOutStr = kyberSwapResult.data.routeSummary.amountOut;
     const amountOutTokenAddress = kyberSwapResult.data.routeSummary.tokenOut;
     this.logger.debug(`KyberSwap amountOut: ${amountOutStr}`);
-
     const updatedAmountOut = BigInt(amountOutStr);
-    this.logger.debug(`Converted amountOut to bigint: ${updatedAmountOut.toString()}`);
 
-    // Determine which amount to update and log the decision
+    // Determine which amount to update
     let updatedAmount0Max = amount0Max;
     let updatedAmount1Max = amount1Max;
 
@@ -311,19 +235,17 @@ export class ZapInService {
       this.logger.debug(`amount0Max remains: ${updatedAmount0Max.toString()}`);
     }
 
-    // Prepare the input object for Arrakis mint amounts
     const input = {
       vault,
       amount0Max: updatedAmount0Max,
       amount1Max: updatedAmount1Max,
     };
 
-    // Log the input object details (convert bigints to strings)
     this.logger.debug(
       `Calling getMintAmounts with input: { vault: ${input.vault}, amount0Max: ${input.amount0Max.toString()}, amount1Max: ${input.amount1Max.toString()} }`,
     );
 
-    // Fetch the updated mint amounts
+    // Fetch updated mint amounts
     try {
       const mintAmounts = await this.arrakisContractsService.getMintAmounts(input);
       this.logger.debug(
@@ -336,8 +258,8 @@ export class ZapInService {
     }
   }
 
-  private async buildKyberSwapRoute(kyberSwapResult: KyberSwapResponse, sender: string): Promise<string> {
-    const buildRouteUrl = `${ZapInService.KYBERSWAP_API_URL}/${ZapInService.KYBERSWAP_CHAIN}/api/v1/route/build`;
+  private async buildKyberSwapRoute(kyberSwapResult: KyberSwapResponse): Promise<string> {
+    const buildRouteUrl = `${this.kyberswapConfig.url}/${this.kyberswapConfig.chain}/api/v1/route/build`;
     const routeSummary = kyberSwapResult.data.routeSummary;
 
     const buildRouteBody = {
@@ -354,9 +276,9 @@ export class ZapInService {
         extraFee: routeSummary.extraFee,
         route: routeSummary.route,
       },
-      sender,
-      recipient: sender,
-      slippageTolerance: ZapInService.DEFAULT_SLIPPAGE_TOLERANCE,
+      sender: this.kyberswapConfig.senderAddress,
+      recipient: this.kyberswapConfig.recipientAddress,
+      slippageTolerance: this.kyberswapConfig.slippageTolerance,
     };
 
     this.logger.debug(`Building KyberSwap route with body: ${JSON.stringify(buildRouteBody)}`);
@@ -377,17 +299,35 @@ export class ZapInService {
 
   private async makeHttpRequest<T>(method: "GET" | "POST", url: string, options: any): Promise<T> {
     const requestStartTime = Date.now();
+
+    options.headers = {
+      ...options.headers,
+      "x-client-id": this.kyberswapConfig.clientId,
+    };
+
     try {
       const response: AxiosResponse<T> =
         method === "GET"
-          ? await firstValueFrom(this.httpService.get(url, options))
-          : await firstValueFrom(this.httpService.post(url, options.data, options));
+          ? await firstValueFrom(
+              this.httpService.get(url, {
+                ...options,
+                headers: options.headers,
+              }),
+            )
+          : await firstValueFrom(
+              this.httpService.post(url, options.data, {
+                ...options,
+                headers: options.headers,
+              }),
+            );
 
       if (response.status !== 200) {
         throw new BadRequestException(`API responded with status ${response.status}`);
       }
 
       return response.data;
+    } catch (error) {
+      this.handleHttpError(error, url);
     } finally {
       const duration = Date.now() - requestStartTime;
       this.logger.debug(`HTTP ${method} request to ${url} completed in ${duration}ms`);
@@ -420,5 +360,237 @@ export class ZapInService {
       throw error;
     }
     throw new BadRequestException(fallbackMessage);
+  }
+
+  private handleHttpError(error: any, url: string): never {
+    const errorMessage = error.response?.data
+      ? {
+          code: error.response.data.code,
+          message: error.response.data.message,
+          requestId: error.response.data.requestId,
+          details: error.response.data.details,
+        }
+      : `Request to ${url} failed: ${error.message}`;
+
+    this.logger.error(`HTTP request failed: ${JSON.stringify(errorMessage)}`);
+    throw new BadRequestException(errorMessage);
+  }
+
+  private async processZapInRoute(
+    vaultAddress: Address,
+    amounts: TokenAmounts,
+    tokens: ITokenPair & { token0: TokenWithCoingecko; token1: TokenWithCoingecko },
+  ) {
+    const arrakisResult = await this.fetchArrakisMintAmounts(vaultAddress, amounts.amount0Max, amounts.amount1Max);
+
+    const [token0Price, token1Price] = await this.fetchTokenPrices(tokens.token0, tokens.token1);
+
+    const ratios = this.calculateRatio(arrakisResult, tokens, +token0Price, +token1Price);
+
+    const swapAmounts = this.calculateSwapAmounts(
+      amounts.inputToken,
+      amounts.outputToken,
+      tokens,
+      ratios.ratioToken0,
+      ratios.ratioToken1,
+      +token0Price,
+      +token1Price,
+      amounts.amount0Max,
+      amounts.amount1Max,
+    );
+
+    const kyberSwapResult = await this.fetchKyberSwapRoute(
+      swapAmounts.tokenInAddress,
+      swapAmounts.tokenOutAddress,
+      swapAmounts.tokenInAmount,
+    );
+
+    // Validate kyberSwapResult
+    this.validateKyberSwapResult(kyberSwapResult);
+
+    const arrakisResultUpdated = await this.updateArrakisMintAmounts(
+      vaultAddress,
+      amounts.amount0Max,
+      amounts.amount1Max,
+      kyberSwapResult,
+      tokens,
+    );
+
+    const encodedRoute = await this.buildKyberSwapRoute(kyberSwapResult);
+
+    return this.constructResponse(
+      arrakisResultUpdated,
+      swapAmounts.tokenInAmount,
+      swapAmounts.tokenInAddress,
+      swapAmounts.tokenOutAddress,
+      kyberSwapResult,
+      encodedRoute,
+    );
+  }
+
+  private validateKyberSwapResult(result: KyberSwapResponse): void {
+    if (!result?.data?.routeSummary) {
+      throw new BadRequestException("Invalid KyberSwap response format");
+    }
+
+    const { amountIn, amountOut, tokenIn, tokenOut } = result.data.routeSummary;
+
+    if (!amountIn || !amountOut || !tokenIn || !tokenOut) {
+      throw new BadRequestException("Missing required fields in KyberSwap response");
+    }
+
+    if (BigInt(amountOut) <= 0n) {
+      throw new BadRequestException("Invalid amount out from KyberSwap");
+    }
+  }
+
+  private async fetchTokenInfo(vaultAddress: Address): Promise<TokenInfo> {
+    try {
+      const [token0CoingeckoId, token1CoingeckoId] = await Promise.all([
+        this.configService.getArrakisVaultToken0CoingeckoId(vaultAddress),
+        this.configService.getArrakisVaultToken1CoingeckoId(vaultAddress),
+      ]);
+
+      if (!token0CoingeckoId || !token1CoingeckoId) {
+        this.logger.error(`Missing Coingecko IDs for vault ${vaultAddress}`);
+        throw new BadRequestException("Missing token identifiers");
+      }
+
+      return {
+        token0CoingeckoId,
+        token1CoingeckoId,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to fetch token info for vault ${vaultAddress}: ${error.message}`, error.stack);
+      throw new BadRequestException("Failed to fetch token information");
+    }
+  }
+
+  private combineTokenInfo(
+    tokens: ITokenPair,
+    tokenInfo: TokenInfo,
+  ): ITokenPair & {
+    token0: TokenWithCoingecko;
+    token1: TokenWithCoingecko;
+  } {
+    try {
+      this.validateTokenAddresses(tokens);
+
+      return {
+        token0: {
+          ...tokens.token0,
+          coinGeckoId: tokenInfo.token0CoingeckoId,
+        },
+        token1: {
+          ...tokens.token1,
+          coinGeckoId: tokenInfo.token1CoingeckoId,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Failed to combine token info: ${error.message}`);
+      throw new BadRequestException("Failed to process token information");
+    }
+  }
+
+  private validateTokenAddresses(tokens: ITokenPair): void {
+    if (!tokens.token0?.address || !tokens.token1?.address) {
+      throw new BadRequestException("Invalid token addresses");
+    }
+
+    if (!tokens.token0?.decimals || !tokens.token1?.decimals) {
+      throw new BadRequestException("Missing token decimals");
+    }
+  }
+
+  private async determineTokenAmounts(
+    dto: GetZapInRouteBodyDto,
+    tokens: ITokenPair & {
+      token0: TokenWithCoingecko;
+      token1: TokenWithCoingecko;
+    },
+  ): Promise<TokenAmounts> {
+    try {
+      await this.validateTokenAmountInput(dto);
+
+      const inputTokenLower = dto.inputToken.toLowerCase();
+      const token0Lower = tokens.token0.coinGeckoId.toLowerCase();
+      const token1Lower = tokens.token1.coinGeckoId.toLowerCase();
+
+      // Validate token matching
+      if (inputTokenLower !== token0Lower && inputTokenLower !== token1Lower) {
+        throw new BadRequestException(`Input token ${dto.inputToken} does not match either vault token`);
+      }
+
+      return await this.calculateTokenAmounts(dto, tokens, inputTokenLower === token0Lower);
+    } catch (error) {
+      this.logger.error(`Failed to determine token amounts: ${error.message}`, error.stack);
+      throw new BadRequestException(`Failed to determine token amounts: ${error.message}`);
+    }
+  }
+
+  private async validateTokenAmountInput(dto: GetZapInRouteBodyDto): Promise<void> {
+    if (!dto.tokenInAmount) {
+      throw new BadRequestException("Missing token input amount");
+    }
+
+    try {
+      const amount = BigInt(dto.tokenInAmount);
+      if (amount <= 0n) {
+        throw new BadRequestException("Token amount must be greater than 0");
+      }
+    } catch (error) {
+      throw new BadRequestException("Invalid token amount format");
+    }
+  }
+
+  private async calculateTokenAmounts(
+    dto: GetZapInRouteBodyDto,
+    tokens: ITokenPair & {
+      token0: TokenWithCoingecko;
+      token1: TokenWithCoingecko;
+    },
+    isToken0Input: boolean,
+  ): Promise<TokenAmounts> {
+    try {
+      if (isToken0Input) {
+        const amount0Max = BigInt(dto.tokenInAmount);
+        const amount1Max = await this.fetchMaxAmount(tokens.token1.address);
+
+        return {
+          amount0Max,
+          amount1Max,
+          inputToken: tokens.token0,
+          outputToken: tokens.token1,
+        };
+      } else {
+        const amount1Max = BigInt(dto.tokenInAmount);
+        const amount0Max = await this.fetchMaxAmount(tokens.token0.address);
+
+        return {
+          amount0Max,
+          amount1Max,
+          inputToken: tokens.token1,
+          outputToken: tokens.token0,
+        };
+      }
+    } catch (error) {
+      this.logger.error(`Failed to calculate token amounts: ${error.message}`, error.stack);
+      throw new BadRequestException("Failed to calculate token amounts");
+    }
+  }
+
+  private async fetchMaxAmount(tokenAddress: Address): Promise<bigint> {
+    try {
+      const totalSupply = await this.erc20Service.getErc20TokenTotalSupply(tokenAddress);
+
+      if (!totalSupply || totalSupply === 0n) {
+        throw new Error(`Invalid total supply for token ${tokenAddress}`);
+      }
+
+      return totalSupply;
+    } catch (error) {
+      this.logger.error(`Failed to fetch max amount for token ${tokenAddress}: ${error.message}`);
+      throw new BadRequestException(`Failed to fetch token supply for ${tokenAddress}`);
+    }
   }
 }

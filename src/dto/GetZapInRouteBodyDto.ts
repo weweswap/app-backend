@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEthereumAddress } from "class-validator";
+import { IsEthereumAddress, IsNotEmpty, IsNumberString, IsString } from "class-validator";
 
 export class GetZapInRouteBodyDto {
   @ApiProperty({
@@ -9,6 +9,10 @@ export class GetZapInRouteBodyDto {
   @IsEthereumAddress()
   vaultAddress: string;
 
+  @IsString()
+  @IsNotEmpty()
   inputToken: string;
+
+  @IsNumberString()
   tokenInAmount: string;
 }

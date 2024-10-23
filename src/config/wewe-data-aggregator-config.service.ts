@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { Address } from "viem";
 import { ArrakisVaultConfig, MergeCoinConfig, WeweConfig } from "../shared/class/WeweDataAggregatorConfig";
 import { MongoConfig } from "../shared/class/MongoConfig";
+import { KyberswapConfig } from "../shared/class/KyberswapConfig";
 
 @Injectable()
 export class WeweConfigService {
@@ -37,6 +38,10 @@ export class WeweConfigService {
 
   get mongoConfig(): MongoConfig {
     return this._config.mongoConfig;
+  }
+
+  get kyberswapConfig(): KyberswapConfig {
+    return this._config.kyberswapConfig;
   }
 
   get nodeUrlRpc(): string {

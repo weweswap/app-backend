@@ -14,6 +14,7 @@ import {
 import { Transform, Type } from "class-transformer";
 import { Address } from "viem";
 import { MongoConfig } from "./MongoConfig";
+import { KyberswapConfig } from "./KyberswapConfig";
 
 export class ArrakisVaultConfig {
   @Transform(({ value }) => value.toLowerCase() as Address, { toClassOnly: true })
@@ -120,6 +121,11 @@ export class WeweConfig {
   @Type(() => MergeCoinConfig)
   mergeCoins: MergeCoinConfig[];
 
+  @IsObject()
+  @IsDefined()
+  @Type(() => KyberswapConfig)
+  kyberswapConfig: KyberswapConfig;
+
   constructor(
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
@@ -127,6 +133,7 @@ export class WeweConfig {
     arrakisHelperAddress: string,
     arrakisResolverAddress: string,
     mergeCoins: MergeCoinConfig[],
+    kyberswapConfig: KyberswapConfig,
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
@@ -134,5 +141,6 @@ export class WeweConfig {
     this.arrakisHelperAddress = arrakisHelperAddress;
     this.arrakisResolverAddress = arrakisResolverAddress;
     this.mergeCoins = mergeCoins;
+    this.kyberswapConfig = kyberswapConfig;
   }
 }
