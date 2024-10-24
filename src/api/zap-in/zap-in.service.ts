@@ -74,7 +74,10 @@ export class ZapInService {
       token1: TokenWithCoingecko;
     },
   ): Promise<void> {
-    if (dto.inputToken !== tokens.token0.address && dto.inputToken !== tokens.token1.address) {
+    if (
+      dto.inputToken.toLowerCase() !== tokens.token0.address.toLowerCase() &&
+      dto.inputToken.toLowerCase() !== tokens.token1.address.toLowerCase()
+    ) {
       throw new BadRequestException("Invalid input token or vault address - does not match token0 or token1");
     }
 
