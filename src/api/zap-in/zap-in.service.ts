@@ -74,7 +74,7 @@ export class ZapInService {
       token1: TokenWithCoingecko;
     },
   ): Promise<void> {
-    if (dto.inputToken !== tokens.token0.coinGeckoId && dto.inputToken !== tokens.token1.coinGeckoId) {
+    if (dto.inputToken !== tokens.token0.address && dto.inputToken !== tokens.token1.address) {
       throw new BadRequestException("Invalid input token or vault address - does not match token0 or token1");
     }
 
@@ -503,8 +503,8 @@ export class ZapInService {
       await this.validateTokenAmountInput(dto);
 
       const inputTokenLower = dto.inputToken.toLowerCase();
-      const token0Lower = tokens.token0.coinGeckoId.toLowerCase();
-      const token1Lower = tokens.token1.coinGeckoId.toLowerCase();
+      const token0Lower = tokens.token0.address.toLowerCase();
+      const token1Lower = tokens.token1.address.toLowerCase();
 
       // Validate token matching
       if (inputTokenLower !== token0Lower && inputTokenLower !== token1Lower) {
