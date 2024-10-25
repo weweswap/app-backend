@@ -30,14 +30,15 @@ export class VaultsService {
     const feeManagerAddress = this.configService.getfeeManagerAddress(vaultAddress);
 
     try {
-      const [apr, feesPerDay, rate] = await Promise.all([
+      const [apr, feesPerDay, feesPerWeek, rate] = await Promise.all([
         vaultDataProvider.getFeeApr(),
         vaultDataProvider.getFeesPerDay(),
+        vaultDataProvider.getFeesPerWeek(),
         this.feeManagerContractService.getRate(feeManagerAddress),
       ]);
       const incentivesPerDay = feesPerDay * rate;
 
-      return new VaultInfoResponseDto(vaultAddress, apr, feesPerDay, incentivesPerDay);
+      return new VaultInfoResponseDto(vaultAddress, apr, feesPerDay, incentivesPerDay, feesPerWeek);
     } catch (error) {
       this.logger.error("Error retrieving vault info:", error);
       throw error;
