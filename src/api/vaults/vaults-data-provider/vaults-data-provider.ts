@@ -173,6 +173,23 @@ export class VaultsDataProvider {
     return await this.getTotalFeesInUsd(startTimestamp, endTimestamp);
   }
 
+  /**
+   * Calculates the total accumulated fees in USD on this week.
+   * @returns A promise that resolves to the accumulated fees in USDC.
+   */
+  public async getFeesPerWeek(): Promise<number> {
+    const endTimestamp = getEndOfPreviousDayTimestamp();
+    let startTimestamp = endTimestamp - MILLISECONDS_PER_WEEK; //weekly data
+
+    // if vault deployment is after startTimestamp, we use timestamp from startingBlock env property
+    const deploymentTimestamp = await this.getDeploymentTimestamp();
+    if (startTimestamp <= deploymentTimestamp) {
+      startTimestamp = deploymentTimestamp;
+    }
+
+    return await this.getTotalFeesInUsd(startTimestamp, endTimestamp);
+  }
+
   private async getTotalFeesInUsd(startTimestamp: number, endTimestamp: number): Promise<number> {
     const collectedFees = await this.getRewardsConvertedToUsdc(startTimestamp, endTimestamp);
 
