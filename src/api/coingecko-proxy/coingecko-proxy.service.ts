@@ -18,13 +18,12 @@ export class CoingeckoProxyService implements NestMiddleware {
         "^/": "/api/v3/simple/price",
       },
       on: {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        proxyReq: (proxyReq, req: Request, res: Response) => {
+        proxyReq: (proxyReq) => {
           proxyReq.setHeader("x-cg-pro-api-key", apiKey);
         },
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        error: (err, req, res) => {
+        error: (err, req, res: Response) => {
           console.error("[Proxy Error]:", err);
+          res.status(500).send("An error occurred while processing your request.");
         },
       },
     };
