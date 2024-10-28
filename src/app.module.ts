@@ -8,6 +8,7 @@ import { VaultsModule } from "./api/vaults/vaults.module";
 import { WeweConfigModule } from "./config/wewe-data-aggregator-config.module";
 import { WeweConfigService } from "./config/wewe-data-aggregator-config.service";
 import { MergeModule } from "./api/merge/merge.module";
+import { CoingeckoProxyModule } from "./api/coingecko-proxy/coingecko-proxy.module";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MergeModule } from "./api/merge/merge.module";
     }),
     VaultsModule,
     MergeModule,
+    CoingeckoProxyModule,
   ],
   controllers: [AppController],
   providers: [AppService, Logger],
