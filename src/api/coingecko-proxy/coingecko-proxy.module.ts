@@ -8,6 +8,6 @@ import { WeweConfigModule } from "../../config/wewe-data-aggregator-config.modul
 })
 export class CoingeckoProxyModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(CoingeckoProxyService).forRoutes("/coingecko");
+    consumer.apply(CoingeckoProxyService).forRoutes("/api/coingecko");
   }
 }
