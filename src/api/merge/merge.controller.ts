@@ -96,6 +96,15 @@ export class MergeController {
         throw new Error("Invalid address");
       }
 
+      const whiteList = [{
+        address: "0x0000000000000000000000000000000000000000"
+      }]
+
+      const isWhitelisted = whiteList.find((item) => item.address === address);
+      if (!isWhitelisted) {
+        return NotFoundException("Address not in white list");
+      }
+
       // Check if address is in whitelist
       const abi = [
         {
@@ -150,7 +159,7 @@ export class MergeController {
       return tx.hash;
     } catch (error) {
       this.logger.error(`Error setting white list for ${address}: ${error}`);
-      throw new NotFoundException("Address not found");
+      throw new Error("Unable to set white list");
     }
   }
 }
