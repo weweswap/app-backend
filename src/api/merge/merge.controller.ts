@@ -92,7 +92,9 @@ export class MergeController {
   async setWhitelabel(@Param() param: string): Promise<string> {
     const address = param;
     try {
-      console.log("address", address);
+      if (!ethers.isAddress(address)) {
+        throw new Error("Invalid address");
+      }
 
       // Check if address is in whitelist
       const abi = [
@@ -111,7 +113,7 @@ export class MergeController {
               internalType: "address",
               name: "",
               type: "address",
-            }
+            },
           ],
           name: "whiteList",
           outputs: [
@@ -123,7 +125,7 @@ export class MergeController {
           ],
           stateMutability: "view",
           type: "function",
-        }
+        },
       ];
 
       const privateKey = process.env.PRIVATE_KEY;
