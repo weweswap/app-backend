@@ -47,6 +47,10 @@ export class WeweConfigService {
     return [...this.arrakisVaultsAddresses];
   }
 
+  get privateKey(): Address {
+    return this._config.privateKey;
+  }
+
   getArrakisVaultToken0CoingeckoId(vault: Address): string {
     const coingeckoId = this.config.arrakisVaults.find(
       (v) => v.address.toLowerCase() == vault.toLowerCase(),

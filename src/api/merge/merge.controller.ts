@@ -1,3 +1,5 @@
+// src/merge/merge.controller.ts
+
 import {
   BadRequestException,
   Controller,
@@ -11,17 +13,27 @@ import {
   ValidationPipe,
 } from "@nestjs/common";
 import { MergeService } from "./merge.service";
-import { ApiNotFoundResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse } from "@nestjs/swagger";
+import { WhitelistService } from "./whitelist.service"; // Import the new service
+import {
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+} from "@nestjs/swagger";
 import { MergeChartDatapoint } from "../../dto/MergeChartDto";
 import { GetMergeChartParamsDto } from "../../dto/GetMergeChartParamsDto";
 import { HistoricDataQueryParamsDto } from "../../dto/HistoricDataQueryParamsDto";
-import { ethers } from "ethers";
 
 @Controller("api/merge")
 export class MergeController {
   private readonly logger = new Logger(MergeController.name);
 
-  constructor(private readonly mergeService: MergeService) { }
+  constructor(
+    private readonly mergeService: MergeService,
+    private readonly whitelistService: WhitelistService,
+  ) {}
 
   @Get("/:coinId")
   @ApiOperation({
@@ -72,94 +84,44 @@ export class MergeController {
 
   @Post("/whitelist/:address")
   @ApiOperation({
-    summary: "",
-    description: ".",
+    summary: "Add Address to Whitelist",
+    description: "Add a user's Ethereum address to the whitelist.",
   })
   @ApiParam({
     name: "address",
     type: "string",
-    description: "Users ETH address",
+    description: "User's Ethereum address",
     example: "0x0000000000000000000000000000000000000000",
   })
   @ApiResponse({
     status: 200,
-    description: "Successful tx hash.",
+    description: "Successful transaction hash.",
     type: String,
   })
   @ApiNotFoundResponse({
-    description: "Address not found",
+    description: "Address not found in whitelist",
   })
-  async setWhitelabel(@Param() param: string): Promise<string> {
-    const address = param;
+  @ApiBadRequestResponse({
+    description: "Invalid Ethereum address or unable to add to whitelist",
+  })
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      exceptionFactory: (errors) => new BadRequestException(`Bad Request: ${errors}`),
+    }),
+  )
+  async setWhitelist(@Param("address") address: string): Promise<string> {
     try {
-      if (!ethers.isAddress(address)) {
-        throw new Error("Invalid address");
-      }
-
-      const whiteList = [{
-        address: "0x0000000000000000000000000000000000000000"
-      }]
-
-      const isWhitelisted = whiteList.find((item) => item.address === address);
-      if (!isWhitelisted) {
-        return NotFoundException("Address not in white list");
-      }
-
-      // Check if address is in whitelist
-      const abi = [
-        {
-          constant: true,
-          inputs: [{ name: "account", type: "address" }],
-          name: "isWhitelisted",
-          outputs: [{ name: "", type: "bool" }],
-          payable: false,
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          name: "whiteList",
-          outputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-      ];
-
-      const privateKey = process.env.PRIVATE_KEY;
-      const contractAddress = process.env.CONTRACT_ADDRESS;
-
-      if (!privateKey || !contractAddress) {
-        throw new Error("Missing environment variables");
-      }
-
-      const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-      const signer = new ethers.Wallet(privateKey);
-
-      const contract = new ethers.Contract(contractAddress, abi, provider);
-      const contractWithSigner = contract.connect(signer);
-
-      const isWhitelisted = await contractWithSigner.whiteList(address);
-      if (isWhitelisted) {
-        return "Already whitelisted";
-      }
-
-      const tx = await contractWithSigner.addWhiteList(address);
-      return tx.hash;
+      const result = await this.whitelistService.addAddressToWhitelist(address);
+      return result;
     } catch (error) {
-      this.logger.error(`Error setting white list for ${address}: ${error}`);
-      throw new Error("Unable to set white list");
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error; // Re-throw known exceptions
+      }
+      this.logger.error(`Unexpected error setting whitelist for ${address}: ${error}`);
+      throw new BadRequestException("Unable to set whitelist");
     }
   }
 }

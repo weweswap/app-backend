@@ -107,26 +107,32 @@ export class WeweConfig {
 
   @ValidateIf((o) => o.arrakisVaults && o.arrakisVaults.length > 0)
   @IsString()
-  @IsEthereumAddress({ each: true })
-  arrakisHelperAddress: string;
-
+  @IsEthereumAddress()
+  @Transform(({ value }) => value as Address)
+  arrakisHelperAddress: Address;
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MergeCoinConfig)
   mergeCoins: MergeCoinConfig[];
 
+  @IsNotEmpty()
+  @Transform(({ value }) => value as Address)
+  privateKey: Address;
+
   constructor(
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
     arrakisVaults: ArrakisVaultConfig[],
-    arrakisHelperAddress: string,
+    arrakisHelperAddress: Address,
     mergeCoins: MergeCoinConfig[],
+    privateKey: Address,
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
     this.arrakisVaults = arrakisVaults;
     this.arrakisHelperAddress = arrakisHelperAddress;
     this.mergeCoins = mergeCoins;
+    this.privateKey = privateKey;
   }
 }

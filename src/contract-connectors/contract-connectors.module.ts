@@ -6,10 +6,11 @@ import { DatabaseModule } from "../database/database.module";
 import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
 import { FeeManagerContractsService } from "./fee-manager-contracts/fee-manager-contracts.service";
 import { Erc20Service } from "./erc-20/erc-20.service";
+import { WhitelistContractsService } from "./whitelist-contracts/whitelist-contracts.service";
 
 @Module({
   imports: [BlockchainConnectorsModule, WeweConfigModule, PriceOraclesModule, DatabaseModule],
-  providers: [Logger, ArrakisContractsService, FeeManagerContractsService, Erc20Service],
-  exports: [ArrakisContractsService, FeeManagerContractsService, Erc20Service],
+  providers: [Logger, ArrakisContractsService, FeeManagerContractsService, Erc20Service, WhitelistContractsService],
+  exports: [ArrakisContractsService, FeeManagerContractsService, Erc20Service, WhitelistContractsService],
 })
 export class ContractConnectorsModule {}

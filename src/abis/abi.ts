@@ -2202,3 +2202,26 @@ export const feeManagerAbi = [
   { inputs: [], name: "withdrawEmergency", outputs: [], stateMutability: "nonpayable", type: "function" },
   { inputs: [], name: "withdrawalChaos", outputs: [], stateMutability: "nonpayable", type: "function" },
 ] as const;
+
+//TODO: adapt to real contract ABI
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const whitelistAbi = [
+  {
+    constant: true,
+    inputs: [{ name: "account", type: "address" }],
+    name: "isWhitelisted",
+    outputs: [{ name: "", type: "bool" }],
+    payable: false,
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    constant: false,
+    inputs: [{ name: "account", type: "address" }],
+    name: "addWhiteList",
+    outputs: [],
+    payable: false,
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
