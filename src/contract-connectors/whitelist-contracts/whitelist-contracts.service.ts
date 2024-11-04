@@ -8,6 +8,7 @@ import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/e
 import { EvmWriteService } from "../../blockchain-connectors/evm-write/evm-write.service";
 import { whitelistAbi } from "../../abis/abi";
 
+//TODO remove - not needed anymore
 @Injectable()
 export class WhitelistContractsService {
   private readonly logger = new Logger(WhitelistContractsService.name);
@@ -18,7 +19,7 @@ export class WhitelistContractsService {
     private readonly evmWriteService: EvmWriteService,
   ) {
     //TODO: move address to config
-    const address = "0xca11bde05977b3631167028862be2a173976ca11";
+    const address = "0x711Aadc66281E42Ecc7f6f4b91d47F4aB792AF5f";
     if (!address) {
       this.logger.error("WHITELIST_CONTRACT_ADDRESS is not defined");
       throw new InternalServerErrorException("Whitelist contract address not configured");
@@ -37,7 +38,7 @@ export class WhitelistContractsService {
         abi: whitelistAbi,
         client: this.evmConnectorService.client,
       });
-      const result = await contract.read.isWhitelisted([address]);
+      const result = await contract.read.whiteList([address]);
       return result;
     } catch (error) {
       this.logger.error(`Error checking whitelist status for ${address}: ${error.message}`);
@@ -56,7 +57,7 @@ export class WhitelistContractsService {
         client: this.evmWriteService.walletClient,
       });
 
-      const txHash = await contract.write.addWhiteList([address]);
+      const txHash = await contract.write.addWhiteList([address, true]);
       return txHash;
     } catch (error) {
       this.logger.error(`Error adding ${address} to whitelist: ${error.message}`);

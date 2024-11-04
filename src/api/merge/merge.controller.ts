@@ -7,21 +7,13 @@ import {
   Logger,
   NotFoundException,
   Param,
-  Post,
   Query,
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
 import { MergeService } from "./merge.service";
 import { WhitelistService } from "./whitelist.service"; // Import the new service
-import {
-  ApiBadRequestResponse,
-  ApiNotFoundResponse,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-} from "@nestjs/swagger";
+import { ApiNotFoundResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse } from "@nestjs/swagger";
 import { MergeChartDatapoint } from "../../dto/MergeChartDto";
 import { GetMergeChartParamsDto } from "../../dto/GetMergeChartParamsDto";
 import { HistoricDataQueryParamsDto } from "../../dto/HistoricDataQueryParamsDto";
@@ -82,46 +74,14 @@ export class MergeController {
     }
   }
 
-  @Post("/whitelist/:address")
-  @ApiOperation({
-    summary: "Add Address to Whitelist",
-    description: "Add a user's Ethereum address to the whitelist.",
-  })
-  @ApiParam({
-    name: "address",
-    type: "string",
-    description: "User's Ethereum address",
-    example: "0x0000000000000000000000000000000000000000",
-  })
-  @ApiResponse({
-    status: 200,
-    description: "Successful transaction hash.",
-    type: String,
-  })
-  @ApiNotFoundResponse({
-    description: "Address not found in whitelist",
-  })
-  @ApiBadRequestResponse({
-    description: "Invalid Ethereum address or unable to add to whitelist",
-  })
-  @UsePipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      exceptionFactory: (errors) => new BadRequestException(`Bad Request: ${errors}`),
-    }),
-  )
-  async setWhitelist(@Param("address") address: string): Promise<string> {
-    try {
-      const result = await this.whitelistService.addAddressToWhitelist(address);
-      return result;
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
-        throw error; // Re-throw known exceptions
-      }
-      this.logger.error(`Unexpected error setting whitelist for ${address}: ${error}`);
-      throw new BadRequestException("Unable to set whitelist");
-    }
+  //TODO Swagger documentation and DTO
+  /**
+   * GET /api/proof/:address
+   * Retrieves the proof array for the specified address.
+   */
+  @Get("/whitelist/:address")
+  async getProof(@Param("address") address: string): Promise<{ proof: string[] }> {
+    const proof = await this.whitelistService.getProofByAddress(address);
+    return { proof };
   }
 }
