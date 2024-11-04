@@ -125,7 +125,7 @@ export class WeweConfig {
   @IsNotEmpty()
   @Transform(({ value }) => value as Address)
   privateKey: Address;
-  
+
   @IsObject()
   @IsDefined()
   @Type(() => KyberswapConfig)
@@ -139,7 +139,6 @@ export class WeweConfig {
     mergeCoins: MergeCoinConfig[],
     privateKey: Address,
     arrakisResolverAddress: string,
-    mergeCoins: MergeCoinConfig[],
     kyberswapConfig: KyberswapConfig,
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
