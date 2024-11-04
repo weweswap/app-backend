@@ -2,6 +2,7 @@ import { Logger, Module } from "@nestjs/common";
 import { EvmConnectorService } from "./evm-connector/evm-connector.service";
 import { WeweConfigModule } from "../config/wewe-data-aggregator-config.module";
 import { WeweConfigService } from "../config/wewe-data-aggregator-config.service";
+import { EvmWriteService } from "./evm-write/evm-write.service";
 
 @Module({
   imports: [WeweConfigModule],
@@ -16,7 +17,16 @@ import { WeweConfigService } from "../config/wewe-data-aggregator-config.service
         return await service.initialize();
       },
     },
+    {
+      provide: EvmWriteService,
+      inject: [WeweConfigService],
+      useFactory: async (config: WeweConfigService) => {
+        const service = new EvmWriteService(config);
+
+        return await service.initialize();
+      },
+    },
   ],
-  exports: [EvmConnectorService],
+  exports: [EvmConnectorService, EvmWriteService],
 })
 export class BlockchainConnectorsModule {}

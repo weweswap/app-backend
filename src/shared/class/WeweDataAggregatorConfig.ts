@@ -108,8 +108,9 @@ export class WeweConfig {
 
   @ValidateIf((o) => o.arrakisVaults && o.arrakisVaults.length > 0)
   @IsString()
-  @IsEthereumAddress({ each: true })
-  arrakisHelperAddress: string;
+  @IsEthereumAddress()
+  @Transform(({ value }) => value as Address)
+  arrakisHelperAddress: Address;
 
   @ValidateIf((o) => o.arrakisVaults && o.arrakisVaults.length > 0)
   @IsString()
@@ -121,6 +122,10 @@ export class WeweConfig {
   @Type(() => MergeCoinConfig)
   mergeCoins: MergeCoinConfig[];
 
+  @IsNotEmpty()
+  @Transform(({ value }) => value as Address)
+  privateKey: Address;
+
   @IsObject()
   @IsDefined()
   @Type(() => KyberswapConfig)
@@ -130,9 +135,10 @@ export class WeweConfig {
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
     arrakisVaults: ArrakisVaultConfig[],
-    arrakisHelperAddress: string,
-    arrakisResolverAddress: string,
+    arrakisHelperAddress: Address,
     mergeCoins: MergeCoinConfig[],
+    privateKey: Address,
+    arrakisResolverAddress: string,
     kyberswapConfig: KyberswapConfig,
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
@@ -141,6 +147,7 @@ export class WeweConfig {
     this.arrakisHelperAddress = arrakisHelperAddress;
     this.arrakisResolverAddress = arrakisResolverAddress;
     this.mergeCoins = mergeCoins;
+    this.privateKey = privateKey;
     this.kyberswapConfig = kyberswapConfig;
   }
 }

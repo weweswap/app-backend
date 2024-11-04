@@ -1,3 +1,5 @@
+// src/merge/merge.controller.ts
+
 import {
   BadRequestException,
   Controller,
@@ -10,6 +12,7 @@ import {
   ValidationPipe,
 } from "@nestjs/common";
 import { MergeService } from "./merge.service";
+import { WhitelistService } from "./whitelist.service"; // Import the new service
 import { ApiNotFoundResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse } from "@nestjs/swagger";
 import { MergeChartDatapoint } from "../../dto/MergeChartDto";
 import { GetMergeChartParamsDto } from "../../dto/GetMergeChartParamsDto";
@@ -19,7 +22,10 @@ import { HistoricDataQueryParamsDto } from "../../dto/HistoricDataQueryParamsDto
 export class MergeController {
   private readonly logger = new Logger(MergeController.name);
 
-  constructor(private readonly mergeService: MergeService) {}
+  constructor(
+    private readonly mergeService: MergeService,
+    private readonly whitelistService: WhitelistService,
+  ) {}
 
   @Get("/:coinId")
   @ApiOperation({
@@ -66,5 +72,16 @@ export class MergeController {
       this.logger.error(`Error fetching merge chart information for coin ${coinId}: ${error}`);
       throw new NotFoundException("Merge Coin not found");
     }
+  }
+
+  //TODO Swagger documentation and DTO
+  /**
+   * GET /api/proof/:address
+   * Retrieves the proof array for the specified address.
+   */
+  @Get("/whitelist/:address")
+  async getProof(@Param("address") address: string): Promise<{ proof: string[] }> {
+    const proof = await this.whitelistService.getProofByAddress(address);
+    return { proof };
   }
 }
