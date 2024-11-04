@@ -11,6 +11,7 @@ import { MergeModule } from "./api/merge/merge.module";
 import { ZapInModule } from "./api/zap-in/zap-in.module";
 import { AxiosRetryModule } from "nestjs-axios-retry";
 import axiosRetry from "axios-retry";
+import { CoingeckoProxyModule } from "./api/coingecko-proxy/coingecko-proxy.module";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import axiosRetry from "axios-retry";
     VaultsModule,
     MergeModule,
     ZapInModule,
+    CoingeckoProxyModule,
   ],
   controllers: [AppController],
   providers: [AppService, Logger],
