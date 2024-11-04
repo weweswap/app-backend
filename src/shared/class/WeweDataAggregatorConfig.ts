@@ -14,6 +14,7 @@ import {
 import { Transform, Type } from "class-transformer";
 import { Address } from "viem";
 import { MongoConfig } from "./MongoConfig";
+import { KyberswapConfig } from "./KyberswapConfig";
 
 export class ArrakisVaultConfig {
   @Transform(({ value }) => value.toLowerCase() as Address, { toClassOnly: true })
@@ -111,6 +112,11 @@ export class WeweConfig {
   @Transform(({ value }) => value as Address)
   arrakisHelperAddress: Address;
 
+  @ValidateIf((o) => o.arrakisVaults && o.arrakisVaults.length > 0)
+  @IsString()
+  @IsEthereumAddress({ each: true })
+  arrakisResolverAddress: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MergeCoinConfig)
@@ -119,6 +125,11 @@ export class WeweConfig {
   @IsNotEmpty()
   @Transform(({ value }) => value as Address)
   privateKey: Address;
+  
+  @IsObject()
+  @IsDefined()
+  @Type(() => KyberswapConfig)
+  kyberswapConfig: KyberswapConfig;
 
   constructor(
     nodeUrlRpc: string,
@@ -127,12 +138,17 @@ export class WeweConfig {
     arrakisHelperAddress: Address,
     mergeCoins: MergeCoinConfig[],
     privateKey: Address,
+    arrakisResolverAddress: string,
+    mergeCoins: MergeCoinConfig[],
+    kyberswapConfig: KyberswapConfig,
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
     this.arrakisVaults = arrakisVaults;
     this.arrakisHelperAddress = arrakisHelperAddress;
+    this.arrakisResolverAddress = arrakisResolverAddress;
     this.mergeCoins = mergeCoins;
     this.privateKey = privateKey;
+    this.kyberswapConfig = kyberswapConfig;
   }
 }
