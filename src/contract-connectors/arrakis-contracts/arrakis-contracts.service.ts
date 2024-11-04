@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { Memoize } from "typescript-memoize";
 import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/evm-connector.service";
 import { Address, getContract, GetContractReturnType, PublicClient } from "viem";
-import { arrakisHelperAbi, arrakisVaultAbi } from "../../abis/abi";
+import { arrakisHelperAbi, arrakisResolverAbi, arrakisVaultAbi } from "../../abis/abi";
 import Big from "big.js";
 import { CoingeckoService } from "../../price-oracles/coingecko/coingecko.service";
 import { ONE_HOUR_IN_MILLISECONDS } from "../../shared/constants";
@@ -11,6 +11,7 @@ import { VaultHistoricalMetadataDto } from "../../shared/class/VaultHistoricalDa
 import { ITokenPair } from "../../shared/interface/ITokenPair";
 import { WeweConfigService } from "../../config/wewe-data-aggregator-config.service";
 import { Erc20Service } from "../erc-20/erc-20.service";
+import { ArrakisResolverInput } from "../../shared/types/common";
 
 /**
  * Service responsible for connecting to Arrakis Smart Contracts
@@ -135,6 +136,16 @@ export class ArrakisContractsService {
     return this.erc20Service.getErc20Tokens(t0Address, t1Address);
   }
 
+  public async getMintAmounts(arrakisResolverInput: ArrakisResolverInput) {
+    const resolverContract = this.getArrakisResolverContract();
+
+    return await resolverContract.read.getMintAmounts([
+      arrakisResolverInput.vault,
+      arrakisResolverInput.amount0Max,
+      arrakisResolverInput.amount1Max,
+    ]);
+  }
+
   @Memoize()
   private async getVaultTokenDecimals(vaultAddress: Address): Promise<number> {
     return this.getVaultContract(vaultAddress).read.decimals();
@@ -164,6 +175,20 @@ export class ArrakisContractsService {
     return getContract({
       address: this.configService.arrakisHelperAddress,
       abi: arrakisHelperAbi,
+      client: this.evmConnector.client,
+    });
+  }
+
+  /**
+   * Construct Arrakis Resolver Viem Contract instance
+   * @param arrakisResolverAddress - Arrakis Resolver address
+   * @private
+   */
+  @Memoize()
+  private getArrakisResolverContract(): GetContractReturnType<typeof arrakisResolverAbi, PublicClient> {
+    return getContract({
+      address: this.configService.arrakisResolverAddress,
+      abi: arrakisResolverAbi,
       client: this.evmConnector.client,
     });
   }
