@@ -8,6 +8,9 @@ export class Whitelist {
   @Prop({ required: true, unique: true, index: true })
   address: string;
 
+  @Prop({ required: true })
+  amount: string;
+
   @Prop({ required: true, type: [String] })
   proof: string[];
 

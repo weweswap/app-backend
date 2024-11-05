@@ -80,8 +80,8 @@ export class MergeController {
    * Retrieves the proof array for the specified address.
    */
   @Get("/whitelist/:address")
-  async getProof(@Param("address") address: string): Promise<{ proof: string[] }> {
-    const proof = await this.whitelistService.getProofByAddress(address);
-    return { proof };
+  async getProof(@Param("address") address: string) {
+    const whitelistInfo = await this.whitelistService.getProofByAddress(address);
+    return { whitelistInfo };
   }
 }
