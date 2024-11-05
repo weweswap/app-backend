@@ -14,11 +14,11 @@ export class WhitelistService {
    * @returns The proof array associated with the address.
    * @throws NotFoundException if the address does not exist.
    */
-  async getProofByAddress(address: string): Promise<string[]> {
-    const keyValue = await this.keyValueModel.findOne({ address }).exec();
-    if (!keyValue) {
+  async getProofByAddress(address: string) {
+    const whitelistInfo = await this.keyValueModel.findOne({ address }).exec();
+    if (!whitelistInfo) {
       throw new NotFoundException(`Address '${address}' not found`);
     }
-    return keyValue.proof;
+    return whitelistInfo;
   }
 }
