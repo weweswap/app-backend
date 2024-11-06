@@ -19,4 +19,4 @@ import { PriceOraclesModule } from "../../price-oracles/price-oracles.module";
   providers: [ZapInService],
   exports: [ZapInService],
 })
-export class ZapInModule {}
+export class ZapModule {}
