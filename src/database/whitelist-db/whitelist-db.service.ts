@@ -23,8 +23,8 @@ export class WhitelistDbService {
     try {
       const whitelistEntry = await this.whitelistModel
         .findOne({
-          mergeProject: projectAddress,
-          address: userAddress,
+          mergeProject: projectAddress.toLowerCase(),
+          address: userAddress.toLowerCase(),
         })
         .exec();
 
