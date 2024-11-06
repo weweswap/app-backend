@@ -1,24 +1,25 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
-import { Whitelist, WhitelistDocument } from "../../database/schemas/WhitelistData.schema";
+import { Injectable } from "@nestjs/common";
+import { WhitelistDbService } from "../../database/whitelist-db/whitelist-db.service";
+import { WhitelistInfoDto, WhitelistInfoResponseDto } from "../../dto/WhitelistInfoResponseDto";
+import { Address } from "viem";
 
-//TODO refactor
 @Injectable()
 export class WhitelistService {
-  constructor(@InjectModel(Whitelist.name) private keyValueModel: Model<WhitelistDocument>) {}
+  constructor(private readonly whitelistDbService: WhitelistDbService) {}
 
-  /**
-   * Retrieves the proof array for a given address.
-   * @param address - The address to query.
-   * @returns The proof array associated with the address.
-   * @throws NotFoundException if the address does not exist.
-   */
-  async getProofByAddress(address: string) {
-    const whitelistInfo = await this.keyValueModel.findOne({ address }).exec();
-    if (!whitelistInfo) {
-      throw new NotFoundException(`Address '${address}' not found`);
-    }
-    return whitelistInfo;
+  async getWhitelistInfo(projectAddress: string, userAddress: string): Promise<WhitelistInfoResponseDto> {
+    const whitelistEntry = await this.whitelistDbService.getWhitelistInfo(projectAddress, userAddress);
+    const whitelistInfoDto = new WhitelistInfoDto(
+      whitelistEntry.mergeProject as Address,
+      whitelistEntry.address as Address,
+      whitelistEntry.amount,
+      whitelistEntry.proof,
+    );
+
+    const whitelistResponse: WhitelistInfoResponseDto = {
+      whitelistInfo: whitelistInfoDto,
+    };
+
+    return whitelistResponse;
   }
 }

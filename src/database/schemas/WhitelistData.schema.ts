@@ -19,4 +19,4 @@ export class Whitelist {
 }
 
 export const WhitelistSchema = SchemaFactory.createForClass(Whitelist);
-WhitelistSchema.index({ project: 1, address: 1 }, { unique: true });
+WhitelistSchema.index({ mergeProject: 1, address: 1 }, { unique: true });

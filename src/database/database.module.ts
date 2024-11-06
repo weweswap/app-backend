@@ -14,6 +14,7 @@ import { PriceHistoricalDocument, PriceHistoricalDocumentSchema } from "./schema
 import { PriceDbService } from "./price-db/price-db.service";
 import { Whitelist, WhitelistSchema } from "./schemas/WhitelistData.schema";
 import { ImportService } from "./importWhitelist.service";
+import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
 
 @Module({
   imports: [
@@ -48,7 +49,15 @@ import { ImportService } from "./importWhitelist.service";
     RewardsConvertedToUsdcDbService,
     PriceDbService,
     ImportService,
+    WhitelistDbService,
   ],
-  exports: [VaultDbService, ProgressMetadataDbService, RewardsConvertedToUsdcDbService, PriceDbService, ImportService],
+  exports: [
+    VaultDbService,
+    ProgressMetadataDbService,
+    RewardsConvertedToUsdcDbService,
+    PriceDbService,
+    ImportService,
+    WhitelistDbService,
+  ],
 })
 export class DatabaseModule {}
