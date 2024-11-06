@@ -146,6 +146,10 @@ export class ArrakisContractsService {
     ]);
   }
 
+  public async getTotalSupply(vaultAddress: Address): Promise<bigint> {
+    return await this.erc20Service.getErc20TokenTotalSupply(vaultAddress);
+  }
+
   @Memoize()
   private async getVaultTokenDecimals(vaultAddress: Address): Promise<number> {
     return this.getVaultContract(vaultAddress).read.decimals();
