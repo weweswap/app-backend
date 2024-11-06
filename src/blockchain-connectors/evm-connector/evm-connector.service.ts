@@ -88,7 +88,7 @@ export class EvmConnectorService {
   }
 
   @Memoize()
-  private async getChain(): Promise<Chain> {
+  public async getChain(): Promise<Chain> {
     if (this.chain) {
       return this.chain;
     }
