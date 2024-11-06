@@ -40,8 +40,12 @@ export class ImportService {
 
     const bulkOps = data.map((item) => ({
       updateOne: {
-        filter: { address: item.value[0], amount: item.value[1], mergeProject: projectName },
-        update: { $set: { proof: item.proof, amount: item.value[1], mergeProject: projectName } },
+        filter: {
+          address: item.value[0].toLowerCase(),
+          amount: item.value[1],
+          mergeProject: projectName.toLowerCase(),
+        },
+        update: { $set: { proof: item.proof, amount: item.value[1], mergeProject: projectName.toLowerCase() } },
         upsert: true,
       },
     }));

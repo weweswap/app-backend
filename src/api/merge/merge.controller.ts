@@ -1,5 +1,3 @@
-// src/merge/merge.controller.ts
-
 import {
   BadRequestException,
   Controller,
@@ -17,6 +15,9 @@ import { ApiNotFoundResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse } fr
 import { MergeChartDatapoint } from "../../dto/MergeChartDto";
 import { GetMergeChartParamsDto } from "../../dto/GetMergeChartParamsDto";
 import { HistoricDataQueryParamsDto } from "../../dto/HistoricDataQueryParamsDto";
+import { WhitelistInfoResponseDto } from "../../dto/WhitelistInfoResponseDto";
+import { GetWhitelistInfoParamsDto } from "../../dto/GetWhitelistInfoParamsDto";
+import { GetWhitelistInfoQueryParamsDto } from "../../dto/GetWhitelistInfoQueryParamsDto";
 
 @Controller("api/merge")
 export class MergeController {
@@ -74,14 +75,50 @@ export class MergeController {
     }
   }
 
-  //TODO Swagger documentation and DTO
-  /**
-   * GET /api/proof/:address
-   * Retrieves the proof array for the specified address.
-   */
   @Get("/whitelist/:address")
-  async getProof(@Param("address") address: string) {
-    const whitelistInfo = await this.whitelistService.getProofByAddress(address);
-    return { whitelistInfo };
+  @ApiOperation({
+    summary: "Get whitelist info for a certain merge project and address",
+    description: "Retrieve whitelist information like proofs and whitelisted amounts",
+  })
+  @ApiParam({
+    name: "projectAddress",
+    type: "string",
+    description: "Address of the merge project",
+    example: "0x1234567890abcdef1234567890abcdef12345678",
+  })
+  @ApiQuery({
+    name: "userAddress",
+    required: true,
+    type: String,
+    description: "Address of the requested user",
+    example: "0x1234567890abcdef1234567890abcdef12345678",
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Successfully retrieved whitelist information.",
+    type: WhitelistInfoResponseDto,
+    isArray: true,
+  })
+  @ApiNotFoundResponse({
+    description: "Merge Coin not found",
+  })
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      exceptionFactory: (errors) => new BadRequestException(`Bad Request: ${errors}`),
+    }),
+  )
+  async getWhitelistInfo(
+    @Param() params: GetWhitelistInfoParamsDto,
+    @Query() queryParams: GetWhitelistInfoQueryParamsDto,
+  ): Promise<WhitelistInfoResponseDto> {
+    try {
+      return await this.whitelistService.getWhitelistInfo(params.address, queryParams.userAddress);
+    } catch (error) {
+      this.logger.error(
+        `Error fetching whitelist information for project ${params.address} and user ${queryParams.userAddress}: ${error}`,
+      );
+      throw new NotFoundException("Merge project or user not found");
+    }
   }
 }
