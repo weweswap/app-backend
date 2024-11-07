@@ -206,11 +206,11 @@ export class ZapOutService {
 
     if (tokenToSwap === tokens.token0.address) {
       tokenInAddress = tokens.token0.address;
-      tokenInAmount = BigInt(Math.ceil(token0Share.toNumber()));
+      tokenInAmount = BigInt(Math.ceil(token0Share.toNumber() * 0.95));
       tokenOutAddress = tokens.token1.address;
     } else {
       tokenInAddress = tokens.token1.address;
-      tokenInAmount = BigInt(Math.ceil(token1Share.toNumber()));
+      tokenInAmount = BigInt(Math.ceil(token1Share.toNumber() * 0.95));
       tokenOutAddress = tokens.token0.address;
     }
 
