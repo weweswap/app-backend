@@ -2,6 +2,7 @@ import { Body, Controller, Logger, Post } from "@nestjs/common";
 import { ZapInService } from "./zap-in.service";
 import { GetZapInRouteBodyDto } from "../../dto/GetZapInRouteBodyDto";
 import { GetZapOutRouteBodyDto } from "../../dto/GetZapOutRouteBodyDto";
+import { ZapOutService } from "./zap-out.service";
 
 @Controller("api")
 export class ZapInController {
@@ -25,9 +26,9 @@ export class ZapInController {
   @Post("/zap-out")
   async getZapOutRoute(@Body() zapOutRouteBodyDto: GetZapOutRouteBodyDto) {
     try {
-      return await this.zapOutService.getZapInRoute(zapOutRouteBodyDto);
+      return await this.zapOutService.getZapOutRoute(zapOutRouteBodyDto);
     } catch (error) {
-      this.logger.error("Error occurred during zap-in operation:", error);
+      this.logger.error("Error occurred during zap-out operation:", error);
       throw error;
     }
   }

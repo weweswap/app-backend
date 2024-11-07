@@ -83,24 +83,28 @@ export class ArrakisContractsService {
     timestampsInMs: number | bigint,
     blockNumber: number | bigint,
   ): Promise<number> {
-    const [[holdings0, holdings1], t0Price, t1Price] = await Promise.all([
+    const [[rawHoldings0, rawHoldings1], t0Price, t1Price, tokenPair] = await Promise.all([
       this.getUnderlyingTokenHoldings(vault, Number(blockNumber)),
       this.coingeckoService.getTokenUsdPrice(vault.token0CoingeckoName, Number(timestampsInMs)),
       this.coingeckoService.getTokenUsdPrice(vault.token1CoingeckoName, Number(timestampsInMs)),
+      this.getTokens(vault.address),
     ]);
 
-    return holdings0
-      .mul(Big(t0Price))
-      .plus(holdings1.mul(Big(t1Price)))
-      .toNumber();
+    // Normalize holdings by dividing by 10^decimals
+    const normalizedHoldings0 = Big(rawHoldings0).div(Big(10).pow(tokenPair.token0.decimals));
+    const normalizedHoldings1 = Big(rawHoldings1).div(Big(10).pow(tokenPair.token1.decimals));
+
+    // Calculate TVL in USD
+    const tvlUsd = normalizedHoldings0.mul(Big(t0Price)).plus(normalizedHoldings1.mul(Big(t1Price)));
+
+    return tvlUsd.toNumber();
   }
 
   /**
-   * Fetch underlying token holdings of arrakis vault
+   * Fetch underlying token holdings of Arrakis vault without normalizing by decimals
    * @param vault - Arrakis vault config
-   * @param arrakisHelperAddress - Arrakis vault address
    * @param blockNumber - Block number to be queried for underlying token holdings
-   * @return Normalised amounts of token0 and token1 (divided by their decimal precision)
+   * @return Raw amounts of token0 and token1
    */
   @Memoize({
     expiring: ONE_HOUR_IN_MILLISECONDS,
@@ -108,16 +112,12 @@ export class ArrakisContractsService {
   })
   public async getUnderlyingTokenHoldings(vault: ArrakisVaultConfig, blockNumber: number): Promise<[Big, Big]> {
     const helperContract = this.getArrakisHelperContract();
-    const tokenPair: ITokenPair = await this.getTokens(vault.address);
 
     const holding = await helperContract.read.totalUnderlying([vault.address], {
       blockNumber: BigInt(blockNumber),
     });
 
-    return [
-      Big(holding[0].toString()).div(Math.pow(10, tokenPair.token0.decimals)),
-      Big(holding[1].toString()).div(Math.pow(10, tokenPair.token1.decimals)),
-    ];
+    return [Big(holding[0].toString()), Big(holding[1].toString())];
   }
 
   /**

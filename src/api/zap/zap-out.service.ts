@@ -41,7 +41,7 @@ export class ZapOutService {
         tokens,
       );
     } catch (error) {
-      this.handleError(error, "Failed to get Zap In route");
+      this.handleError(error, "Failed to get Zap Out route");
     }
   }
 
@@ -190,8 +190,15 @@ export class ZapOutService {
       Number(blockNumber),
     );
 
-    const token0Share = Big(underlyingTokenHoldings[0]).mul(sharesInPercentage);
-    const token1Share = Big(underlyingTokenHoldings[1]).mul(sharesInPercentage);
+    console.log(sharesInPercentage.toString());
+    console.log(underlyingTokenHoldings[0].toString());
+    console.log(underlyingTokenHoldings[1].toString());
+
+    const token0Share = underlyingTokenHoldings[0].mul(sharesInPercentage);
+    const token1Share = underlyingTokenHoldings[1].mul(sharesInPercentage);
+
+    console.log(token0Share.toString());
+    console.log(token1Share.toString());
 
     let tokenInAddress: Address;
     let tokenInAmount: bigint;
@@ -199,11 +206,11 @@ export class ZapOutService {
 
     if (tokenToSwap === tokens.token0.address) {
       tokenInAddress = tokens.token0.address;
-      tokenInAmount = BigInt(token0Share.toString());
+      tokenInAmount = BigInt(Math.ceil(token0Share.toNumber()));
       tokenOutAddress = tokens.token1.address;
     } else {
       tokenInAddress = tokens.token1.address;
-      tokenInAmount = BigInt(token1Share.toString());
+      tokenInAmount = BigInt(Math.ceil(token1Share.toNumber()));
       tokenOutAddress = tokens.token0.address;
     }
 
