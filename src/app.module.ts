@@ -8,10 +8,10 @@ import { VaultsModule } from "./api/vaults/vaults.module";
 import { WeweConfigModule } from "./config/wewe-data-aggregator-config.module";
 import { WeweConfigService } from "./config/wewe-data-aggregator-config.service";
 import { MergeModule } from "./api/merge/merge.module";
-import { ZapInModule } from "./api/zap-in/zap-in.module";
 import { AxiosRetryModule } from "nestjs-axios-retry";
 import axiosRetry from "axios-retry";
 import { CoingeckoProxyModule } from "./api/coingecko-proxy/coingecko-proxy.module";
+import { ZapModule } from "./api/zap/zap.module";
 
 @Module({
   imports: [
@@ -38,7 +38,7 @@ import { CoingeckoProxyModule } from "./api/coingecko-proxy/coingecko-proxy.modu
     }),
     VaultsModule,
     MergeModule,
-    ZapInModule,
+    ZapModule,
     CoingeckoProxyModule,
   ],
   controllers: [AppController],
