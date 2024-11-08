@@ -1,7 +1,7 @@
 import { HttpModule } from "@nestjs/axios";
 import { Module } from "@nestjs/common";
 import { WeweConfigModule } from "../../config/wewe-data-aggregator-config.module";
-import { ZapInController } from "./zap-in.controller";
+import { ZapController } from "./zap.controller";
 import { ZapInService } from "./zap-in.service";
 import { ContractConnectorsModule } from "../../contract-connectors/contract-connectors.module";
 import { PriceOraclesModule } from "../../price-oracles/price-oracles.module";
@@ -18,7 +18,7 @@ import { BlockchainConnectorsModule } from "../../blockchain-connectors/blockcha
     PriceOraclesModule,
     BlockchainConnectorsModule,
   ],
-  controllers: [ZapInController],
+  controllers: [ZapController],
   providers: [ZapInService, ZapOutService],
   exports: [ZapInService, ZapOutService],
 })

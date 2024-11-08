@@ -190,15 +190,8 @@ export class ZapOutService {
       Number(blockNumber),
     );
 
-    console.log(sharesInPercentage.toString());
-    console.log(underlyingTokenHoldings[0].toString());
-    console.log(underlyingTokenHoldings[1].toString());
-
     const token0Share = underlyingTokenHoldings[0].mul(sharesInPercentage);
     const token1Share = underlyingTokenHoldings[1].mul(sharesInPercentage);
-
-    console.log(token0Share.toString());
-    console.log(token1Share.toString());
 
     let tokenInAddress: Address;
     let tokenInAmount: bigint;
@@ -206,11 +199,11 @@ export class ZapOutService {
 
     if (tokenToSwap === tokens.token0.address) {
       tokenInAddress = tokens.token0.address;
-      tokenInAmount = BigInt(Math.ceil(token0Share.toNumber() * 0.95));
+      tokenInAmount = BigInt(token0Share.mul(0.95).round(0, Big.roundUp).toFixed(0));
       tokenOutAddress = tokens.token1.address;
     } else {
       tokenInAddress = tokens.token1.address;
-      tokenInAmount = BigInt(Math.ceil(token1Share.toNumber() * 0.95));
+      tokenInAmount = BigInt(token1Share.mul(0.95).round(0, Big.roundUp).toFixed(0));
       tokenOutAddress = tokens.token0.address;
     }
 

@@ -5,8 +5,8 @@ import { GetZapOutRouteBodyDto } from "../../dto/GetZapOutRouteBodyDto";
 import { ZapOutService } from "./zap-out.service";
 
 @Controller("api")
-export class ZapInController {
-  private readonly logger = new Logger(ZapInController.name);
+export class ZapController {
+  private readonly logger = new Logger(ZapController.name);
 
   constructor(
     private readonly zapInService: ZapInService,
