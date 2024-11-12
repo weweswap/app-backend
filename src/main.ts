@@ -8,6 +8,7 @@ async function bootstrap() {
 
   // Swagger configuration
   const config = new DocumentBuilder()
+    .addApiKey({ type: "apiKey", name: "X-API-KEY", in: "header" }, "X-API-KEY")
     .setTitle("Weweswap API")
     .setDescription("API for managing and retrieving weweswap vault information.")
     .setVersion("1.0")

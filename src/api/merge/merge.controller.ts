@@ -2,22 +2,40 @@ import {
   BadRequestException,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Logger,
   NotFoundException,
   Param,
+  Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
 import { MergeService } from "./merge.service";
 import { WhitelistService } from "./whitelist.service"; // Import the new service
-import { ApiNotFoundResponse, ApiOperation, ApiParam, ApiQuery, ApiResponse } from "@nestjs/swagger";
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiSecurity,
+} from "@nestjs/swagger";
 import { MergeChartDatapoint } from "../../dto/MergeChartDto";
 import { GetMergeChartParamsDto } from "../../dto/GetMergeChartParamsDto";
 import { HistoricDataQueryParamsDto } from "../../dto/HistoricDataQueryParamsDto";
 import { WhitelistInfoResponseDto } from "../../dto/WhitelistInfoResponseDto";
 import { GetWhitelistInfoParamsDto } from "../../dto/GetWhitelistInfoParamsDto";
 import { GetWhitelistInfoQueryParamsDto } from "../../dto/GetWhitelistInfoQueryParamsDto";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { diskStorage } from "multer";
+import { basename, extname } from "path";
+import { ImportService } from "./importWhitelist.service";
 
 @Controller("api/merge")
 export class MergeController {
@@ -26,6 +44,7 @@ export class MergeController {
   constructor(
     private readonly mergeService: MergeService,
     private readonly whitelistService: WhitelistService,
+    private readonly importService: ImportService,
   ) {}
 
   @Get("/:coinId")
@@ -119,6 +138,55 @@ export class MergeController {
         `Error fetching whitelist information for project ${params.address} and user ${queryParams.userAddress}: ${error}`,
       );
       throw new NotFoundException("Merge project or user not found");
+    }
+  }
+
+  @Post("/whitelist/csv")
+  @ApiSecurity("X-API-KEY")
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        file: {
+          type: "string",
+          format: "binary",
+        },
+      },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor("file", {
+      storage: diskStorage({
+        destination: "src/uploads",
+        filename: (req, file, callback) => {
+          const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+        },
+      }),
+      fileFilter: (req, file, callback) => {
+        if (extname(file.originalname).toLowerCase() !== ".csv") {
+          return callback(new HttpException("Only CSV files are allowed!", HttpStatus.BAD_REQUEST), false);
+        }
+        callback(null, true);
+      },
+      limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
+    }),
+  )
+  async uploadCsv(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new HttpException("File is not provided", HttpStatus.BAD_REQUEST);
+    }
+
+    const originalName = basename(file.originalname, extname(file.originalname));
+    const mergeProject = originalName.toLowerCase();
+
+    try {
+      const merkleRoot = await this.importService.processCsv(file.path, mergeProject, 18);
+      return { message: "CSV processed successfully", merkleRoot };
+    } catch (error) {
+      throw new HttpException(`Processing failed: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
