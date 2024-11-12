@@ -131,6 +131,10 @@ export class WeweConfig {
   @Type(() => KyberswapConfig)
   kyberswapConfig: KyberswapConfig;
 
+  @IsString()
+  @IsNotEmpty()
+  internalApiKey: string;
+
   constructor(
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
@@ -140,6 +144,7 @@ export class WeweConfig {
     privateKey: Address,
     arrakisResolverAddress: string,
     kyberswapConfig: KyberswapConfig,
+    internalApiKey: string,
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
@@ -149,5 +154,6 @@ export class WeweConfig {
     this.mergeCoins = mergeCoins;
     this.privateKey = privateKey;
     this.kyberswapConfig = kyberswapConfig;
+    this.internalApiKey = internalApiKey;
   }
 }

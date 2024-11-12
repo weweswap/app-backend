@@ -13,7 +13,7 @@ import { RewardsConvertedToUsdcDbService } from "./rewards-usdc-db/rewards-usdc-
 import { PriceHistoricalDocument, PriceHistoricalDocumentSchema } from "./schemas/PriceHistoricalData.schema";
 import { PriceDbService } from "./price-db/price-db.service";
 import { Whitelist, WhitelistSchema } from "./schemas/WhitelistData.schema";
-import { ImportService } from "./importWhitelist.service";
+import { ImportService } from "../api/merge/importWhitelist.service";
 import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
 
 @Module({
