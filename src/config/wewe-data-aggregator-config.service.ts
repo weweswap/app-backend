@@ -129,4 +129,8 @@ export class WeweConfigService {
   get mergeCoinNames(): string[] {
     return this.config.mergeCoins.map((v) => v.memeCoingeckoName);
   }
+
+  get internalApiKey(): string {
+    return this._config.internalApiKey;
+  }
 }
