@@ -36,6 +36,8 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { basename, extname } from "path";
 import { ImportService } from "./importWhitelist.service";
+import { SnapshotService } from "./snapshot.service";
+import { Address } from "viem";
 
 @Controller("api/merge")
 export class MergeController {
@@ -45,6 +47,7 @@ export class MergeController {
     private readonly mergeService: MergeService,
     private readonly whitelistService: WhitelistService,
     private readonly importService: ImportService,
+    private readonly snapshotService: SnapshotService,
   ) {}
 
   @Get("/:coinId")
@@ -187,6 +190,19 @@ export class MergeController {
       return { message: "CSV processed successfully", merkleRoot };
     } catch (error) {
       throw new HttpException(`Processing failed: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Post("/snapshot/:address")
+  async takeSnapshot(@Param() params: GetWhitelistInfoParamsDto, @Query() queryParams: { blockheight: number }) {
+    try {
+      console.log(params.address, queryParams.blockheight);
+      return await this.snapshotService.takeSnapshot(params.address as Address, queryParams.blockheight);
+    } catch (error) {
+      this.logger.error(
+        `Error taking snapshot for project ${params.address} and blockheight ${queryParams.blockheight}: ${error}`,
+      );
+      throw new NotFoundException("Token not found");
     }
   }
 }

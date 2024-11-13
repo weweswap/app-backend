@@ -5,6 +5,12 @@ import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { WhitelistDbService } from "../../database/whitelist-db/whitelist-db.service";
 
 type WhitelistEntry = [address: string, amount: string];
+type WhitelistBulkEntry = {
+  address: string;
+  amount: string;
+  mergeProject: string;
+  proof?: string[];
+};
 
 @Injectable()
 export class ImportService {
@@ -134,6 +140,124 @@ export class ImportService {
     });
 
     this.logger.log(`CSV processing completed for file: ${csvPath}`);
+    return rootHash;
+  }
+
+  /**
+   * Parses a CSV file into an array of WhitelistEntry.
+   * @param csvPath - The path to the CSV file.
+   * @param decimals - The number of decimals to use for amount conversion.
+   * @returns An array of [address, amount] tuples.
+   */
+  private parseCsv(csvPath: string, decimals: number): WhitelistEntry[] {
+    const csvContent = fs.readFileSync(csvPath, "utf-8");
+    const lines = csvContent.split("\n").filter(Boolean);
+
+    // Remove header if present
+    if (lines[0].includes("HolderAddress")) {
+      lines.shift();
+    }
+
+    const whitelist: WhitelistEntry[] = [];
+
+    this.logger.log(`Parsing CSV lines...`);
+
+    for (let i = 0; i < lines.length; i++) {
+      try {
+        const row = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+        if (!row || row.length < 2) {
+          this.logger.warn(`Invalid row format at line ${i + 2}: ${lines[i]}`);
+          continue;
+        }
+
+        const address = row[0].replace(/"/g, "").toLowerCase();
+
+        // Validate Ethereum address
+        if (!isAddress(address)) {
+          this.logger.warn(`Invalid address at line ${i + 2}: ${address}`);
+          continue;
+        }
+
+        const amount = row[1].replace(/,/g, "").replace(/"/g, "");
+
+        if (!amount || isNaN(Number(amount))) {
+          this.logger.warn(`Invalid amount at line ${i + 2}: ${amount}`);
+          continue;
+        }
+
+        // Parse amount to wei using viem's parseUnits
+        const amountAsBigInt = BigInt(parseUnits(amount, decimals));
+
+        // Example condition: adjust as per your logic
+        if (amountAsBigInt > BigInt(parseUnits("140", decimals))) {
+          whitelist.push([address, amountAsBigInt.toString()]);
+        }
+      } catch (error) {
+        this.logger.error(`Error processing line ${i + 2}: ${error.message}`);
+      }
+    }
+
+    return whitelist;
+  }
+
+  /**
+   * Processes a list of holders, generates Merkle Tree and proofs, and updates the whitelist DB.
+   * @param holders - Array of holder addresses and balances.
+   * @param mergeProject - The project identifier.
+   * @param decimals - The number of decimals to use for amount conversion.
+   * @returns The Merkle root hash.
+   */
+  async processHolders(holders: WhitelistEntry[], mergeProject: string): Promise<string> {
+    if (holders.length === 0) {
+      this.logger.warn("No holders to process.");
+      return "";
+    }
+
+    // Generate Merkle Tree
+    let merkleTree: StandardMerkleTree<WhitelistEntry>;
+    let rootHash: string;
+    try {
+      merkleTree = StandardMerkleTree.of(holders, ["address", "uint256"]);
+      rootHash = merkleTree.root;
+      this.logger.log(`Generated Merkle Root: ${rootHash}`);
+    } catch (error) {
+      this.logger.error(`Error generating Merkle Tree: ${error.message}`);
+      throw error;
+    }
+
+    // Prepare data with proofs
+    const dataWithProofs: WhitelistBulkEntry[] = holders.map(([address, amount], index) => {
+      const proof = merkleTree.getProof(index);
+      return {
+        address,
+        amount,
+        mergeProject,
+        proof,
+      };
+    });
+
+    // Delete existing entries with the same mergeProject
+    this.logger.log(`Deleting existing entries for mergeProject: ${mergeProject}...`);
+    try {
+      const deleteResult = await this.whitelistDbService.deleteByMergeProject(mergeProject);
+      this.logger.log(`Deleted ${deleteResult.deletedCount} existing entries for mergeProject: ${mergeProject}`);
+    } catch (error) {
+      this.logger.error(`Error deleting existing entries for mergeProject ${mergeProject}: ${error.message}`);
+      throw error;
+    }
+
+    // Bulk upsert using WhitelistDbService
+    this.logger.log(`Bulk upserting ${dataWithProofs.length} entries into MongoDB...`);
+    try {
+      const bulkWriteResult = await this.whitelistDbService.bulkUpsertEntries(dataWithProofs);
+      this.logger.log(
+        `Bulk upsert completed. Inserted: ${bulkWriteResult.upsertedCount}, Modified: ${bulkWriteResult.modifiedCount}`,
+      );
+    } catch (error) {
+      this.logger.error(`Error during bulk upsert: ${error.message}`);
+      throw error;
+    }
+
     return rootHash;
   }
 }

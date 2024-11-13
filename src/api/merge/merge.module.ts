@@ -7,10 +7,12 @@ import { WhitelistService } from "./whitelist.service";
 import { ContractConnectorsModule } from "../../contract-connectors/contract-connectors.module";
 import { ImportService } from "./importWhitelist.service";
 import { ApiKeyMiddleware } from "../../auth/auth.middleware";
+import { SnapshotService } from "./snapshot.service";
+import { BlockchainConnectorsModule } from "../../blockchain-connectors/blockchain-connectors.module";
 
 @Module({
-  imports: [DatabaseModule, WeweConfigModule, ContractConnectorsModule],
-  providers: [MergeService, WhitelistService, ImportService],
+  imports: [DatabaseModule, WeweConfigModule, ContractConnectorsModule, BlockchainConnectorsModule],
+  providers: [MergeService, WhitelistService, ImportService, SnapshotService],
   controllers: [MergeController],
 })
 export class MergeModule {

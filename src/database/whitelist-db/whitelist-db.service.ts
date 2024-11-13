@@ -1,3 +1,4 @@
+// src/database/whitelist-db/whitelist-db.service.ts
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -7,7 +8,7 @@ type WhitelistBulkEntry = {
   address: string;
   amount: string;
   mergeProject: string;
-  proof: string[];
+  proof?: string[];
 };
 
 @Injectable()
@@ -48,6 +49,32 @@ export class WhitelistDbService {
     } catch (error) {
       this.logger.error(
         `Error fetching whitelist info for projectAddress: ${projectAddress}, userAddress: ${userAddress}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves all whitelist entries for a specific mergeProject.
+   *
+   * @param mergeProject - The project name to retrieve entries for.
+   * @returns An array of whitelist entries.
+   */
+  public async getWhitelistEntries(mergeProject: string): Promise<WhitelistBulkEntry[]> {
+    this.logger.log(`Retrieving whitelist entries for mergeProject: ${mergeProject}...`);
+    try {
+      const entries = await this.whitelistModel.find({ mergeProject: mergeProject.toLowerCase() }).exec();
+
+      return entries.map((entry) => ({
+        address: entry.address,
+        amount: entry.amount,
+        mergeProject: entry.mergeProject,
+        proof: entry.proof,
+      }));
+    } catch (error) {
+      this.logger.error(
+        `Error retrieving whitelist entries for mergeProject ${mergeProject}: ${error.message}`,
         error.stack,
       );
       throw error;
