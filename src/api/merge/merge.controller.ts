@@ -37,7 +37,7 @@ import { diskStorage } from "multer";
 import { basename, extname } from "path";
 import { ImportService } from "./importWhitelist.service";
 import { SnapshotService } from "./snapshot.service";
-import { Address } from "viem";
+import { Address, isAddress } from "viem";
 
 @Controller("api/merge")
 export class MergeController {
@@ -194,10 +194,18 @@ export class MergeController {
   }
 
   @Post("/snapshot/:address")
-  async takeSnapshot(@Param() params: GetWhitelistInfoParamsDto, @Query() queryParams: { blockheight: number }) {
+  async takeSnapshot(
+    @Param() params: GetWhitelistInfoParamsDto,
+    @Query() queryParams: { blockheight: number },
+  ): Promise<{ merkleRoot: string }> {
     try {
-      console.log(params.address, queryParams.blockheight);
-      return await this.snapshotService.takeSnapshot(params.address as Address, queryParams.blockheight);
+      // Validate the address using viem's isAddress
+      if (!isAddress(params.address)) {
+        throw new BadRequestException("Invalid token contract address.");
+      }
+
+      const merkleRoot = await this.snapshotService.takeSnapshot(params.address as Address, queryParams.blockheight);
+      return { merkleRoot };
     } catch (error) {
       this.logger.error(
         `Error taking snapshot for project ${params.address} and blockheight ${queryParams.blockheight}: ${error}`,

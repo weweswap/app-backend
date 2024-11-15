@@ -129,4 +129,21 @@ export class WhitelistDbService {
       throw error;
     }
   }
+
+  /**
+   * Retrieves all holders for a specific mergeProject.
+   * @param mergeProject - The project identifier.
+   * @returns An array of holders with address and amount.
+   */
+  public async getAllHoldersForMergeProject(mergeProject: string): Promise<{ address: string; amount: string }[]> {
+    try {
+      const holders = await this.whitelistModel
+        .find({ mergeProject: mergeProject.toLowerCase() }, { address: 1, amount: 1, _id: 0 })
+        .exec();
+      return holders;
+    } catch (error) {
+      this.logger.error(`Error fetching holders for mergeProject ${mergeProject}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
 }
