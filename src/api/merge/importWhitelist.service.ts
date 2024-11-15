@@ -62,10 +62,13 @@ export class ImportService {
         // Parse amount to wei using viem's parseUnits
         const amountAsBigInt = BigInt(parseUnits(amount, decimals));
 
+        //push without condition
+        whitelist.push([address, amountAsBigInt.toString()]);
+
         // Example condition: adjust as per your logic
-        if (amountAsBigInt > BigInt(parseUnits("140", decimals))) {
+        /*         if (amountAsBigInt > BigInt(parseUnits("140", decimals))) {
           whitelist.push([address, amountAsBigInt.toString()]);
-        }
+        } */
       } catch (error) {
         this.logger.error(`Error processing line ${i + 2}: ${error.message}`);
       }
