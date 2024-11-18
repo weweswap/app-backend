@@ -25,7 +25,7 @@ export class SnapshotService {
    * and computing the balances of all token holders.
    * @param blockHeight The block height at which to take the snapshot.
    */
-  public async takeSnapshot(address: Address, blockHeight: number): Promise<string> {
+  public async takeSnapshot(address: Address, blockHeight: number): Promise<{ address: string; balance: string }[]> {
     try {
       this.logger.log(`Starting snapshot at block ${blockHeight}`);
 
@@ -34,23 +34,12 @@ export class SnapshotService {
         address.toLowerCase() as Address,
         AggregationType.TOKEN_HOLDER_SNAPSHOT,
       );
-      const fromBlock = lastProcessedBlock !== undefined ? BigInt(lastProcessedBlock) + 1n : 22309301n;
-
-      if (fromBlock > BigInt(blockHeight)) {
-        this.logger.log(`No new blocks to process for token ${address} since last snapshot.`);
-        return "";
-      }
+      const fromBlock = lastProcessedBlock !== undefined ? BigInt(lastProcessedBlock) + 1n : 0n;
 
       // Synchronize Transfer events and compute balances
       const holders = await this.syncAllTransferEvents(address, fromBlock, BigInt(blockHeight));
 
-      this.logger.log(`Computed ${holders.length} token holders.`);
-
-      // Generate Merkle Tree, proofs, and bulk upsert to whitelist DB
-      const merkleRoot = await this.importService.processHolders(
-        holders.map((holder) => [holder.address, holder.balance] as [string, string]),
-        address.toLowerCase(),
-      );
+      await this.saveHoldersToWhitelist(address.toLowerCase(), holders);
 
       // Update the last processed block
       await this.progressMetadataDb.saveProgressMetadata(
@@ -58,9 +47,7 @@ export class SnapshotService {
       );
 
       this.logger.log(`Snapshot at block ${blockHeight} saved successfully.`);
-      this.logger.log(`Generated Merkle Root: ${merkleRoot}`);
-
-      return merkleRoot;
+      return holders;
     } catch (error) {
       this.logger.error(`Error taking snapshot: ${error.message}`, error.stack);
       throw error;
@@ -93,33 +80,64 @@ export class SnapshotService {
       this.logger.error(`Error fetching existing holders from database: ${error.message}`, error.stack);
       throw error;
     }
-    this.logger.debug(`Initialized balances: ${JSON.stringify(balances)}`);
+    if (fromBlock > blocknumber) {
+      this.logger.log(`No new blocks to process for token ${address} since last snapshot.`);
+      const holders = Object.entries(balances)
+        .filter(([, balance]) => balance > 0)
+        .map(([address, balance]) => ({ address: address.toLowerCase(), balance: balance.toString() }));
+      return holders;
+    }
 
     let lowestFromBlock: bigint = fromBlock;
     const maxBlockRange = BigInt(LOGS_MAX_BLOCK_RANGE);
     let toBlock = lowestFromBlock + maxBlockRange < blocknumber ? lowestFromBlock + maxBlockRange : blocknumber;
 
+    const maxRetries = 5;
+    const baseDelay = 1000; // in ms
+
     // Loop through block ranges and fetch logs
     while (lowestFromBlock < blocknumber && toBlock <= blocknumber) {
       this.logger.log(`Fetching events from ${lowestFromBlock} to ${toBlock}. Recent block: ${blocknumber}`);
+      let attempt = 0;
+      let success = false;
+      let logs: SingleLogEvent[] = [];
 
-      try {
-        const logs = (
-          await this.evmConnector.client.getLogs({
-            events: [TransferAbiEvent],
-            fromBlock: lowestFromBlock,
-            toBlock: toBlock,
-            address: address,
-            strict: true,
-          })
-        ).sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber));
-        this.logger.log(`Fetched ${logs.length} Transfer events from block ${lowestFromBlock} to ${toBlock}`);
+      while (attempt < maxRetries && !success) {
+        try {
+          logs = (
+            await this.evmConnector.client.getLogs({
+              events: [TransferAbiEvent],
+              fromBlock: lowestFromBlock,
+              toBlock: toBlock,
+              address: address,
+              strict: true,
+            })
+          ).sort((a, b) => Number(a.blockNumber) - Number(b.blockNumber));
 
-        // Process the fetched logs and update balances
-        await this.processLogs(logs, balances);
-      } catch (error) {
-        this.logger.error(`Error fetching logs from ${lowestFromBlock} to ${toBlock}: ${error.message}`, error.stack);
+          this.logger.log(`Fetched ${logs.length} Transfer events from block ${lowestFromBlock} to ${toBlock}`);
+          success = true; // Exit retry loop on success
+        } catch (error) {
+          attempt++;
+          this.logger.warn(
+            `Attempt ${attempt} failed to fetch logs from ${lowestFromBlock} to ${toBlock}: ${error.message}`,
+          );
+
+          if (attempt < maxRetries) {
+            const delayTime = baseDelay * 2 ** (attempt - 1); // Exponential backoff
+            this.logger.log(`Retrying in ${delayTime} ms...`);
+            await this.delay(delayTime);
+          } else {
+            this.logger.error(
+              `Failed to fetch logs after ${maxRetries} attempts for blocks ${lowestFromBlock} to ${toBlock}`,
+              error.stack,
+            );
+            throw new Error(`Failed to fetch logs for blocks ${lowestFromBlock} to ${toBlock}: ${error.message}`);
+          }
+        }
       }
+      // Process the fetched logs and update balances
+      await this.processLogs(logs, balances);
+
       // check if we've finished
       if (toBlock == blocknumber) {
         break;
@@ -154,24 +172,24 @@ export class SnapshotService {
 
         // Update the balance of the 'from' address
         if (from !== "0x0000000000000000000000000000000000000000") {
-          if (balances[from]) {
-            balances[from] -= BigInt(value);
+          if (balances[from.toLowerCase()]) {
+            balances[from.toLowerCase()] -= BigInt(value);
           } else {
-            balances[from] = 0n - BigInt(value);
+            balances[from.toLowerCase()] = 0n - BigInt(value);
           }
 
           // Remove address if balance drops to zero
-          if (balances[from] === 0n) {
-            delete balances[from];
+          if (balances[from.toLowerCase()] === 0n) {
+            delete balances[from.toLowerCase()];
           }
         }
 
         // Update the balance of the 'to' address
         if (to !== "0x0000000000000000000000000000000000000000") {
-          if (balances[to]) {
-            balances[to] += BigInt(value);
+          if (balances[to.toLowerCase()]) {
+            balances[to.toLowerCase()] += BigInt(value);
           } else {
-            balances[to] = BigInt(value);
+            balances[to.toLowerCase()] = BigInt(value);
           }
         }
       } catch (error) {
@@ -207,5 +225,20 @@ export class SnapshotService {
       this.logger.error(`Error during bulk upsert to whitelist: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  public async generateMerkleRoot(
+    mergeProjectAddress: string,
+    holders: { address: string; balance: string }[],
+  ): Promise<string> {
+    // Generate Merkle Tree, proofs, and bulk upsert to whitelist DB
+    return await this.importService.processHolders(
+      holders.map((holder) => [holder.address, holder.balance] as [string, string]),
+      mergeProjectAddress,
+    );
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

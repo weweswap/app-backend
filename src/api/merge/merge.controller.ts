@@ -197,6 +197,27 @@ export class MergeController {
   async takeSnapshot(
     @Param() params: GetWhitelistInfoParamsDto,
     @Query() queryParams: { blockheight: number },
+  ): Promise<string> {
+    try {
+      // Validate the address using viem's isAddress
+      if (!isAddress(params.address)) {
+        throw new BadRequestException("Invalid token contract address.");
+      }
+
+      await this.snapshotService.takeSnapshot(params.address as Address, queryParams.blockheight);
+      return "Snapshot successfully saved";
+    } catch (error) {
+      this.logger.error(
+        `Error taking snapshot for project ${params.address} and blockheight ${queryParams.blockheight}: ${error}`,
+      );
+      throw new NotFoundException("Token not found");
+    }
+  }
+
+  @Post("/merkleroot/:address")
+  async generateMerkleRoor(
+    @Param() params: GetWhitelistInfoParamsDto,
+    @Query() queryParams: { blockheight: number },
   ): Promise<{ merkleRoot: string }> {
     try {
       // Validate the address using viem's isAddress
@@ -204,7 +225,8 @@ export class MergeController {
         throw new BadRequestException("Invalid token contract address.");
       }
 
-      const merkleRoot = await this.snapshotService.takeSnapshot(params.address as Address, queryParams.blockheight);
+      const holders = await this.snapshotService.takeSnapshot(params.address as Address, queryParams.blockheight);
+      const merkleRoot = await this.snapshotService.generateMerkleRoot(params.address.toLowerCase(), holders);
       return { merkleRoot };
     } catch (error) {
       this.logger.error(
