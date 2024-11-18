@@ -17,6 +17,12 @@ import { BlockchainConnectorsModule } from "../../blockchain-connectors/blockcha
 })
 export class MergeModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(ApiKeyMiddleware).forRoutes({ path: "api/merge/whitelist/csv", method: RequestMethod.POST });
+    consumer
+      .apply(ApiKeyMiddleware)
+      .forRoutes(
+        { path: "api/merge/whitelist/csv", method: RequestMethod.POST },
+        { path: "api/merge/snapshot/:address", method: RequestMethod.POST },
+        { path: "api/merge/merkleroot/:address", method: RequestMethod.POST },
+      );
   }
 }
