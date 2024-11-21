@@ -34,6 +34,7 @@ export function isLpVaultLogMintEvent(
 
 export function isMergeEvent(log: SingleLogEvent): log is GetLogsReturnType<typeof MergeContractMergedEvent>[number] {
   return typeof log === "object" && log !== null && log.eventName == "Merged";
+}
 
 export function isTransferEvent(log: SingleLogEvent): log is GetLogsReturnType<typeof TransferAbiEvent>[number] {
   return typeof log === "object" && log !== null && log.eventName == "Transfer";
