@@ -1,7 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Address } from "viem";
-import { ArrakisVaultConfig, MergeCoinConfig, WeweConfig } from "../shared/class/WeweDataAggregatorConfig";
+import {
+  ArrakisVaultConfig,
+  MergeCoinConfig,
+  MergeContractConfig,
+  WeweConfig,
+} from "../shared/class/WeweDataAggregatorConfig";
 import { MongoConfig } from "../shared/class/MongoConfig";
 import { KyberswapConfig } from "../shared/class/KyberswapConfig";
 
@@ -53,7 +58,7 @@ export class WeweConfigService {
   }
 
   get allPortfolioAddresses(): Address[] {
-    return [...this.arrakisVaultsAddresses];
+    return [...this.arrakisVaultsAddresses, ...this.feeManagerAddresses, ...this.mergeContractsAddresses];
   }
 
   get privateKey(): Address {
@@ -132,5 +137,41 @@ export class WeweConfigService {
 
   get internalApiKey(): string {
     return this._config.internalApiKey;
+  }
+
+  get mergeContractConfigs(): MergeContractConfig[] {
+    return this.config.mergeContracts;
+  }
+
+  getMergeContractConfig(mergeContractAddress: string | Address): MergeContractConfig {
+    const config = this.mergeContractConfigs.find(
+      (v) => v.mergeContractAddress.toLowerCase() == mergeContractAddress.toLowerCase(),
+    );
+
+    if (!config) {
+      throw new Error(
+        `MergeContractConfig not found for mergeContractAddress=${mergeContractAddress}, make sure it is added in env!`,
+      );
+    }
+
+    return config;
+  }
+
+  get mergeContractsAddresses(): Address[] {
+    return this.config.mergeContracts.map((v) => v.mergeContractAddress);
+  }
+
+  getMergeTokenCoingeckoId(mergeContract: Address): string {
+    const coingeckoId = this.config.mergeContracts.find(
+      (v) => v.mergeContractAddress.toLowerCase() == mergeContract.toLowerCase(),
+    )?.mergeTokenCoingeckoName;
+
+    if (!coingeckoId) {
+      throw new Error(
+        `Unable to find coingecko id for merge=${mergeContract}. Make sure mergeTokenCoingeckoName is added in config!`,
+      );
+    }
+
+    return coingeckoId;
   }
 }

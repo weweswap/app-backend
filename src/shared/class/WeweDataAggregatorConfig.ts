@@ -82,6 +82,26 @@ export class MergeCoinConfig {
   }
 }
 
+export class MergeContractConfig {
+  @Transform(({ value }) => value.toLowerCase() as Address, { toClassOnly: true })
+  @IsEthereumAddress()
+  mergeContractAddress: Address;
+
+  @IsNumber()
+  @Min(0)
+  startingBlock: number;
+
+  @IsString()
+  @IsNotEmpty()
+  mergeTokenCoingeckoName: string;
+
+  constructor(mergeContractAddress: Address, startingBlock: number, mergeTokenCoingeckoName: string) {
+    this.mergeContractAddress = mergeContractAddress;
+    this.startingBlock = startingBlock;
+    this.mergeTokenCoingeckoName = mergeTokenCoingeckoName;
+  }
+}
+
 export class WeweConfig {
   @IsString()
   @IsNotEmpty()
@@ -135,6 +155,11 @@ export class WeweConfig {
   @IsNotEmpty()
   internalApiKey: string;
 
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MergeContractConfig)
+  mergeContracts: MergeContractConfig[];
+
   constructor(
     nodeUrlRpc: string,
     mongoConfig: MongoConfig,
@@ -145,6 +170,7 @@ export class WeweConfig {
     arrakisResolverAddress: string,
     kyberswapConfig: KyberswapConfig,
     internalApiKey: string,
+    mergeContracts: MergeContractConfig[],
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
     this.mongoConfig = mongoConfig;
@@ -155,5 +181,6 @@ export class WeweConfig {
     this.privateKey = privateKey;
     this.kyberswapConfig = kyberswapConfig;
     this.internalApiKey = internalApiKey;
+    this.mergeContracts = mergeContracts;
   }
 }
