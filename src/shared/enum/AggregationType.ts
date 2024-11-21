@@ -3,4 +3,5 @@ export enum AggregationType {
   LP_DEPOSIT = "lp_deposit",
   LP_WITHDRAW = "lp_withdraw",
   MERGE = "merge",
+  TOKEN_HOLDER_SNAPSHOT = "token_holder_snapshot",
 }

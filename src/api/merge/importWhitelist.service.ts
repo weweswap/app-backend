@@ -5,6 +5,12 @@ import { StandardMerkleTree } from "@openzeppelin/merkle-tree";
 import { WhitelistDbService } from "../../database/whitelist-db/whitelist-db.service";
 
 type WhitelistEntry = [address: string, amount: string];
+type WhitelistBulkEntry = {
+  address: string;
+  amount: string;
+  mergeProject: string;
+  proof?: string[];
+};
 
 @Injectable()
 export class ImportService {
@@ -22,7 +28,34 @@ export class ImportService {
   async processCsv(csvPath: string, mergeProject: string, decimals: number = 18): Promise<string> {
     this.logger.log(`Starting CSV processing for file: ${csvPath}`);
 
-    // Read and parse CSV
+    // Parse CSV
+    const whitelist = this.parseCsv(csvPath, decimals);
+
+    this.logger.log(`Parsed ${whitelist.length} valid whitelist entries.`);
+
+    // Process holders: generate Merkle Tree, proofs, bulk upsert
+    const merkleRoot = await this.processHolders(whitelist, mergeProject);
+
+    // Delete the CSV file after processing
+    fs.unlink(csvPath, (err) => {
+      if (err) {
+        this.logger.warn(`Failed to delete file ${csvPath}: ${err.message}`);
+      } else {
+        this.logger.log(`Deleted file ${csvPath}`);
+      }
+    });
+
+    this.logger.log(`CSV processing completed for file: ${csvPath}`);
+    return merkleRoot;
+  }
+
+  /**
+   * Parses a CSV file into an array of WhitelistEntry.
+   * @param csvPath - The path to the CSV file.
+   * @param decimals - The number of decimals to use for amount conversion.
+   * @returns An array of [address, amount] tuples.
+   */
+  private parseCsv(csvPath: string, decimals: number): WhitelistEntry[] {
     const csvContent = fs.readFileSync(csvPath, "utf-8");
     const lines = csvContent.split("\n").filter(Boolean);
 
@@ -31,7 +64,7 @@ export class ImportService {
       lines.shift();
     }
 
-    const whitelist: [string, string][] = [];
+    const whitelist: WhitelistEntry[] = [];
 
     this.logger.log(`Parsing CSV lines...`);
 
@@ -53,7 +86,7 @@ export class ImportService {
 
         const amount = row[1].replace(/,/g, "").replace(/"/g, "");
 
-        if (!amount || isNaN(Number(amount))) {
+        if (!amount || Number.isNaN(Number(amount))) {
           this.logger.warn(`Invalid amount at line ${i + 2}: ${amount}`);
           continue;
         }
@@ -71,13 +104,27 @@ export class ImportService {
       }
     }
 
-    this.logger.log(`Parsed ${whitelist.length} valid whitelist entries.`);
+    return whitelist;
+  }
+
+  /**
+   * Processes a list of holders, generates Merkle Tree and proofs, and updates the whitelist DB.
+   * @param holders - Array of holder addresses and balances.
+   * @param mergeProject - The project identifier.
+   * @param decimals - The number of decimals to use for amount conversion.
+   * @returns The Merkle root hash.
+   */
+  async processHolders(holders: WhitelistEntry[], mergeProject: string): Promise<string> {
+    if (holders.length === 0) {
+      this.logger.warn("No holders to process.");
+      return "";
+    }
 
     // Generate Merkle Tree
     let merkleTree: StandardMerkleTree<WhitelistEntry>;
-    let rootHash;
+    let rootHash: string;
     try {
-      merkleTree = StandardMerkleTree.of(whitelist, ["address", "uint256"]);
+      merkleTree = StandardMerkleTree.of(holders, ["address", "uint256"]);
       rootHash = merkleTree.root;
       this.logger.log(`Generated Merkle Root: ${rootHash}`);
     } catch (error) {
@@ -86,7 +133,7 @@ export class ImportService {
     }
 
     // Prepare data with proofs
-    const dataWithProofs = whitelist.map(([address, amount], index) => {
+    const dataWithProofs: WhitelistBulkEntry[] = holders.map(([address, amount], index) => {
       const proof = merkleTree.getProof(index);
       return {
         address,
@@ -96,44 +143,18 @@ export class ImportService {
       };
     });
 
-    // Extract the mergeProject from the first entry or determine appropriately
-    if (dataWithProofs.length === 0) {
-      this.logger.warn("No valid entries to process.");
-      return "";
-    }
-
-    this.logger.log(`Deleting existing entries for mergeProject: ${mergeProject}...`);
-
-    // Delete existing entries with the same mergeProject
-    try {
-      const deleteResult = await this.whitelistDbService.deleteByMergeProject(mergeProject);
-      this.logger.log(`Deleted ${deleteResult.deletedCount} existing entries for mergeProject: ${mergeProject}`);
-    } catch (error) {
-      this.logger.error(`Error deleting existing entries for mergeProject ${mergeProject}: ${error.message}`);
-      throw error;
-    }
-
-    this.logger.log(`Bulk upserting ${dataWithProofs.length} entries into MongoDB...`);
-
     // Bulk upsert using WhitelistDbService
+    this.logger.log(`Bulk upserting ${dataWithProofs.length} entries into MongoDB...`);
     try {
-      await this.whitelistDbService.bulkUpsertEntries(dataWithProofs);
-      this.logger.log(`Bulk upsert completed successfully.`);
+      const bulkWriteResult = await this.whitelistDbService.bulkUpsertEntries(dataWithProofs);
+      this.logger.log(
+        `Bulk upsert completed. Inserted: ${bulkWriteResult.upsertedCount}, Modified: ${bulkWriteResult.modifiedCount}`,
+      );
     } catch (error) {
       this.logger.error(`Error during bulk upsert: ${error.message}`);
       throw error;
     }
 
-    // Delete the CSV file after processing
-    fs.unlink(csvPath, (err) => {
-      if (err) {
-        this.logger.warn(`Failed to delete file ${csvPath}: ${err.message}`);
-      } else {
-        this.logger.log(`Deleted file ${csvPath}`);
-      }
-    });
-
-    this.logger.log(`CSV processing completed for file: ${csvPath}`);
     return rootHash;
   }
 }
