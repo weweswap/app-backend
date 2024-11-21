@@ -19,6 +19,7 @@ const config: Record<string, unknown> = {
   arrakisResolverAddress: process.env.ARRAKIS_RESOLVER_ADDRESS,
   kyberswapConfig: JSON.parse(process.env.KYBERSWAP_CONFIG ?? ""),
   internalApiKey: process.env.INTERNAL_API_KEY,
+  mergeContracts: JSON.parse(process.env.MERGE_CONTRACTS ?? ""),
 };
 
 export default registerAs("config", () => {

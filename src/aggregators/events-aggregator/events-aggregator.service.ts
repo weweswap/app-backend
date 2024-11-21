@@ -3,8 +3,14 @@ import { EvmConnectorService } from "../../blockchain-connectors/evm-connector/e
 import { CronExpression, SchedulerRegistry } from "@nestjs/schedule";
 import { CronJob } from "cron";
 import {
+  LpVaultLogBurnAbiEvent,
+  LpVaultLogMintAbiEvent,
+  MergeContractMergedEvent,
   RewardsConvertedToUsdcAbiEvent,
   SingleLogEvent,
+  isLpVaultLogBurnEvent,
+  isLpVaultLogMintEvent,
+  isMergeEvent,
   isRewardsConvertedToUsdcEvent,
 } from "../../shared/models/Types";
 import { LOGS_MAX_BLOCK_RANGE } from "../../shared/constants";
@@ -14,6 +20,8 @@ import { ProgressMetadataDbService } from "../../database/progress-metadata/prog
 import { ProgressMetadataDto } from "../../database/db-models";
 import { AggregationType } from "../../shared/enum/AggregationType";
 import { FeeManagerEventsHelperService } from "./events-aggregator-helpers/fee-manager-events-helper.service";
+import { LpOperationsHelperService } from "./events-aggregator-helpers/lp-operations-helper.service";
+import { MergeOperationsHelperService } from "./events-aggregator-helpers/merge-operations-helper.service";
 
 @Injectable()
 export class EventsAggregatorService {
@@ -24,11 +32,13 @@ export class EventsAggregatorService {
     private configService: WeweConfigService,
     private schedulerRegistry: SchedulerRegistry,
     private feeManagerEventsHelperService: FeeManagerEventsHelperService,
+    private lpOperationsHelperService: LpOperationsHelperService,
+    private mergeOperationsHelperService: MergeOperationsHelperService,
     private progressMetadataDb: ProgressMetadataDbService,
   ) {}
 
   /**
-   * Aggregate events by synchronizing aup until now and scheduling hourly sync job.
+   * Aggregate events by synchronizing up until now and scheduling hourly sync job.
    */
   public async aggregateEvents(): Promise<void> {
     if (this.configService.allPortfolioAddresses.length > 0) {
@@ -86,7 +96,12 @@ export class EventsAggregatorService {
         ? lowestFromBlock + LOGS_MAX_BLOCK_RANGE
         : recentBlockNumber;
 
-    const addresses = this.configService.feeManagerAddresses;
+    // fetching events for fee manager, arrakis vaults and merge contracts
+    const addresses = [
+      ...this.configService.feeManagerAddresses,
+      ...this.configService.arrakisVaultsAddresses,
+      ...this.configService.mergeContractsAddresses,
+    ];
 
     // fetch logs for logs max block range
     while (lowestFromBlock < recentBlockNumber && toBlock <= recentBlockNumber) {
@@ -94,7 +109,12 @@ export class EventsAggregatorService {
 
       const logs = (
         await this.evmConnector.client.getLogs({
-          events: [RewardsConvertedToUsdcAbiEvent],
+          events: [
+            RewardsConvertedToUsdcAbiEvent,
+            LpVaultLogBurnAbiEvent,
+            LpVaultLogMintAbiEvent,
+            MergeContractMergedEvent,
+          ],
           fromBlock: lowestFromBlock,
           toBlock: toBlock,
           address: addresses,
@@ -142,6 +162,33 @@ export class EventsAggregatorService {
           `Entry for address ${log.address} with hash ${log.transactionHash} already exists. Skipping.`,
         );
       }
+    } else if (isLpVaultLogMintEvent(log)) {
+      const exists = await this.lpOperationsHelperService.checkIfEntryExists(log);
+      if (!exists) {
+        await this.lpOperationsHelperService.handleDeposit(log);
+      } else {
+        this.logger.debug(
+          `Entry for address ${log.address} with hash ${log.transactionHash} already exists. Skipping.`,
+        );
+      }
+    } else if (isLpVaultLogBurnEvent(log)) {
+      const exists = await this.lpOperationsHelperService.checkIfEntryExists(log);
+      if (!exists) {
+        await this.lpOperationsHelperService.handleWithdrawal(log);
+      } else {
+        this.logger.debug(
+          `Entry for address ${log.address} with hash ${log.transactionHash} already exists. Skipping.`,
+        );
+      }
+    } else if (isMergeEvent(log)) {
+      const exists = await this.mergeOperationsHelperService.checkIfEntryExists(log);
+      if (!exists) {
+        await this.mergeOperationsHelperService.handleMerge(log);
+      } else {
+        this.logger.debug(
+          `Entry for address ${log.address} with hash ${log.transactionHash} already exists. Skipping.`,
+        );
+      }
     }
   }
 
@@ -161,6 +208,34 @@ export class EventsAggregatorService {
   }
 
   private async getLowestFromBlocks(): Promise<Map<Address, bigint>> {
-    return await this.feeManagerEventsHelperService.getFromBlocks();
+    const feeManagerBlocks = await this.feeManagerEventsHelperService.getFromBlocks();
+    const lpDepositBlocks = await this.lpOperationsHelperService.getFromBlocks(AggregationType.LP_DEPOSIT);
+    const lpWithdrawBlocks = await this.lpOperationsHelperService.getFromBlocks(AggregationType.LP_WITHDRAW);
+    const mergeBlocks = await this.mergeOperationsHelperService.getFromBlocks(AggregationType.MERGE);
+
+    // combine into one map with the lowest fromBlock from each operation
+    const combinedMap = new Map<Address, bigint>();
+
+    const addToCombinedMap = (map: Map<Address, bigint | undefined>) => {
+      map.forEach((fromBlock, address) => {
+        if (fromBlock !== undefined) {
+          if (combinedMap.has(address)) {
+            const existingBlock = combinedMap.get(address);
+            if (existingBlock !== undefined) {
+              combinedMap.set(address, existingBlock < fromBlock ? existingBlock : fromBlock);
+            }
+          } else {
+            combinedMap.set(address, fromBlock);
+          }
+        }
+      });
+    };
+
+    addToCombinedMap(feeManagerBlocks);
+    addToCombinedMap(lpDepositBlocks);
+    addToCombinedMap(lpWithdrawBlocks);
+    addToCombinedMap(mergeBlocks);
+
+    return combinedMap;
   }
 }

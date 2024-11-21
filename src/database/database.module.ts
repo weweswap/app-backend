@@ -15,6 +15,10 @@ import { PriceDbService } from "./price-db/price-db.service";
 import { Whitelist, WhitelistSchema } from "./schemas/WhitelistData.schema";
 import { ImportService } from "../api/merge/importWhitelist.service";
 import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
+import { LpOperationDocument, LpOperationSchema } from "./schemas/LpOperation.schema";
+import { LpOperationsDbService } from "./lp-operations-db/lp-operations-db.service";
+import { MergeOperationDocument, MergeOperationSchema } from "./schemas/MergeOperation.schema";
+import { MergeOperationsDbService } from "./merge-operations-db/merge-operations-db.service";
 
 @Module({
   imports: [
@@ -39,6 +43,14 @@ import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
         name: Whitelist.name,
         schema: WhitelistSchema,
       },
+      {
+        name: LpOperationDocument.name,
+        schema: LpOperationSchema,
+      },
+      {
+        name: MergeOperationDocument.name,
+        schema: MergeOperationSchema,
+      },
     ]),
     WeweConfigModule,
   ],
@@ -50,6 +62,8 @@ import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
     PriceDbService,
     ImportService,
     WhitelistDbService,
+    LpOperationsDbService,
+    MergeOperationsDbService,
   ],
   exports: [
     VaultDbService,
@@ -58,6 +72,8 @@ import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
     PriceDbService,
     ImportService,
     WhitelistDbService,
+    LpOperationsDbService,
+    MergeOperationsDbService,
   ],
 })
 export class DatabaseModule {}
