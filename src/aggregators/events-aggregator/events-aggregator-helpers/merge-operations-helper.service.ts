@@ -10,6 +10,7 @@ import { AggregationType } from "../../../shared/enum/AggregationType";
 import { MergeOperationsDbService } from "../../../database/merge-operations-db/merge-operations-db.service";
 import { MergeContractsService } from "../../../contract-connectors/merge-contracts/merge-contracts.service";
 import { MergeOperationDto, MergeOperationMetadataDto } from "../../../database/schemas/MergeOperation.schema";
+import { UserDbService } from "../../../database/user-db/user-db.service";
 
 @Injectable()
 export class MergeOperationsHelperService {
@@ -21,6 +22,7 @@ export class MergeOperationsHelperService {
     private mergeContractsService: MergeContractsService,
     private configService: WeweConfigService,
     private coingeckoService: CoingeckoService,
+    private userDbService: UserDbService,
   ) {}
 
   public async handleMerge(log: GetLogsReturnType<typeof MergeContractMergedEvent>[number]) {
@@ -56,6 +58,16 @@ export class MergeOperationsHelperService {
 
     // save merge operation
     await this.mergeOperationsDbService.saveMergeOperation(mergeOperation);
+
+    // Calculate CHAOS points
+    const multiplier = await this.getMultiplier(new Date(timestamp), mergeContractAddress);
+    const basePoints = usdcValue * 10; // 10 CHAOS per 1 USDC merged
+    const chaosPoints = basePoints * multiplier;
+
+    this.logger.debug(`Calculated CHAOS points for user ${log.args.account}: ${chaosPoints} CHAOS`);
+
+    // Update user CHAOS points
+    await this.userDbService.updateMergerPoints(log.args.account!.toLowerCase(), chaosPoints);
   }
 
   private async getLastBlockNumberForOperation(
@@ -91,5 +103,24 @@ export class MergeOperationsHelperService {
     }
 
     return fromBlocks;
+  }
+
+  private async getMultiplier(mergeTimestamp: Date, mergeContractAddress: string): Promise<number> {
+    const mergeStartBlock = this.configService.getMergeContractConfig(mergeContractAddress).startingBlock;
+    const blockTimestamp = await this.evmConnector.getBlockTimestamp(BigInt(mergeStartBlock));
+    const mergeStart = new Date(Number(blockTimestamp)); // Convert to milliseconds
+    const diffInMs = mergeTimestamp.getTime() - mergeStart.getTime();
+    const diffInHours = diffInMs / (1000 * 60 * 60);
+
+    if (diffInHours <= 24) {
+      return 10;
+    } else if (diffInHours <= 48) {
+      return 5;
+    } else if (diffInHours <= 168) {
+      // 7 days
+      return 2;
+    } else {
+      return 1; // No multiplier after 7 days
+    }
   }
 }
