@@ -19,6 +19,8 @@ import { LpOperationDocument, LpOperationSchema } from "./schemas/LpOperation.sc
 import { LpOperationsDbService } from "./lp-operations-db/lp-operations-db.service";
 import { MergeOperationDocument, MergeOperationSchema } from "./schemas/MergeOperation.schema";
 import { MergeOperationsDbService } from "./merge-operations-db/merge-operations-db.service";
+import { UserDocument, UserSchema } from "./schemas/User.schema";
+import { UserDbService } from "./user-db/user-db.service";
 
 @Module({
   imports: [
@@ -51,6 +53,10 @@ import { MergeOperationsDbService } from "./merge-operations-db/merge-operations
         name: MergeOperationDocument.name,
         schema: MergeOperationSchema,
       },
+      {
+        name: UserDocument.name,
+        schema: UserSchema,
+      },
     ]),
     WeweConfigModule,
   ],
@@ -64,6 +70,7 @@ import { MergeOperationsDbService } from "./merge-operations-db/merge-operations
     WhitelistDbService,
     LpOperationsDbService,
     MergeOperationsDbService,
+    UserDbService,
   ],
   exports: [
     VaultDbService,
@@ -74,6 +81,7 @@ import { MergeOperationsDbService } from "./merge-operations-db/merge-operations
     WhitelistDbService,
     LpOperationsDbService,
     MergeOperationsDbService,
+    UserDbService,
   ],
 })
 export class DatabaseModule {}
