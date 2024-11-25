@@ -21,6 +21,9 @@ import { MergeOperationDocument, MergeOperationSchema } from "./schemas/MergeOpe
 import { MergeOperationsDbService } from "./merge-operations-db/merge-operations-db.service";
 import { UserDocument, UserSchema } from "./schemas/User.schema";
 import { UserDbService } from "./user-db/user-db.service";
+import { LPPositionDocument, LPPositionSchema } from "./schemas/LPPosition.schema";
+import { LpPositionDbService } from "./lp-positions-db/lp-positions-db.service";
+import { ChaosPointsHelperService } from "./user-db/chaos-points-helper.service";
 
 @Module({
   imports: [
@@ -57,6 +60,10 @@ import { UserDbService } from "./user-db/user-db.service";
         name: UserDocument.name,
         schema: UserSchema,
       },
+      {
+        name: LPPositionDocument.name,
+        schema: LPPositionSchema,
+      },
     ]),
     WeweConfigModule,
   ],
@@ -71,6 +78,8 @@ import { UserDbService } from "./user-db/user-db.service";
     LpOperationsDbService,
     MergeOperationsDbService,
     UserDbService,
+    LpPositionDbService,
+    ChaosPointsHelperService,
   ],
   exports: [
     VaultDbService,
@@ -82,6 +91,8 @@ import { UserDbService } from "./user-db/user-db.service";
     LpOperationsDbService,
     MergeOperationsDbService,
     UserDbService,
+    LpPositionDbService,
+    ChaosPointsHelperService,
   ],
 })
 export class DatabaseModule {}

@@ -112,7 +112,9 @@ export class MergeOperationsHelperService {
     const diffInMs = mergeTimestamp.getTime() - mergeStart.getTime();
     const diffInHours = diffInMs / (1000 * 60 * 60);
 
-    if (diffInHours <= 24) {
+    if (diffInHours < 0) {
+      return 0;
+    } else if (diffInHours <= 24) {
       return 10;
     } else if (diffInHours <= 48) {
       return 5;

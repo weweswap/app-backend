@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { ClientSession, Model } from "mongoose";
 import { UserDocument } from "../schemas/User.schema";
 
 @Injectable()
@@ -22,14 +22,14 @@ export class UserDbService {
       .exec();
   }
 
-  async updateLpPoints(userAddress: string, points: number): Promise<void> {
+  async updateLpPoints(userAddress: string, points: number, session?: ClientSession): Promise<void> {
     await this.userModel
       .findOneAndUpdate(
         { userAddress },
         {
           $inc: { lpCHAOSPoints: points, totalCHAOSPoints: points },
         },
-        { upsert: true },
+        { upsert: true, session },
       )
       .exec();
   }
