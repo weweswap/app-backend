@@ -32,7 +32,6 @@ export class ChaosPointsHelperService {
         // Calculate the number of full hours elapsed since last reward
         const elapsedMs = currentTime.getTime() - lastRewardTimestamp.getTime();
         const elapsedHours = Math.floor(elapsedMs / (1000 * 60 * 60));
-        console.log(elapsedHours);
 
         if (elapsedHours <= 0) {
           // Less than an hour has passed; no points to award yet
@@ -41,7 +40,6 @@ export class ChaosPointsHelperService {
 
         // Calculate CHAOS points
         const chaosPoints = usdcValue * this.CHAOS_PER_USDC_PER_HOUR * elapsedHours;
-        console.log(chaosPoints);
 
         // Update user CHAOS points
         await this.userDbService.updateLpPoints(userAddress, chaosPoints, session);
