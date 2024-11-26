@@ -22,10 +22,14 @@ import { AggregationType } from "../../shared/enum/AggregationType";
 import { FeeManagerEventsHelperService } from "./events-aggregator-helpers/fee-manager-events-helper.service";
 import { LpOperationsHelperService } from "./events-aggregator-helpers/lp-operations-helper.service";
 import { MergeOperationsHelperService } from "./events-aggregator-helpers/merge-operations-helper.service";
+import { ChaosPointsHelperService } from "../../database/user-db/chaos-points-helper.service";
 
 @Injectable()
 export class EventsAggregatorService {
   private readonly logger = new Logger(EventsAggregatorService.name);
+  private feeManagerAddresses = new Set<Address>();
+  private lpVaultsAddresses = new Set<Address>();
+  private mergeContractsAddresses = new Set<Address>();
 
   constructor(
     private evmConnector: EvmConnectorService,
@@ -35,6 +39,7 @@ export class EventsAggregatorService {
     private lpOperationsHelperService: LpOperationsHelperService,
     private mergeOperationsHelperService: MergeOperationsHelperService,
     private progressMetadataDb: ProgressMetadataDbService,
+    private chaosPointsHelperService: ChaosPointsHelperService,
   ) {}
 
   /**
@@ -48,6 +53,9 @@ export class EventsAggregatorService {
 
       // after events are synced, schedule hourly sync job
       this.scheduleHourlySyncJob();
+
+      // Schedule hourly CHAOS points update job
+      this.scheduleHourlyChaosPointsUpdateJob();
     }
   }
 
@@ -66,6 +74,36 @@ export class EventsAggregatorService {
       job.start();
 
       this.logger.debug("[EventsAggregatorService] Scheduled syncAllEventsJob to run every hour!");
+    }
+  }
+
+  /**
+   * Schedule a job to update CHAOS points every hour.
+   */
+  private scheduleHourlyChaosPointsUpdateJob(): void {
+    const jobName = EventsAggregatorService.name + "-hourlyChaosPointsUpdateJob";
+
+    // Only add cron job if it does not exist
+    if (!this.schedulerRegistry.doesExist("cron", jobName)) {
+      const job = new CronJob(CronExpression.EVERY_HOUR, () => this.updateChaosPoints());
+
+      this.schedulerRegistry.addCronJob(jobName, job);
+      job.start();
+
+      this.logger.debug("[EventsAggregatorService] Scheduled updateChaosPointsJob to run every hour!");
+    }
+  }
+
+  /**
+   * Update CHAOS points for all active LP positions.
+   */
+  private async updateChaosPoints(): Promise<void> {
+    try {
+      this.logger.log("Updating CHAOS points for all active LP positions...");
+      await this.chaosPointsHelperService.updateChaosPointsHourly();
+      this.logger.log("CHAOS points update completed successfully.");
+    } catch (error) {
+      this.logger.error(`Failed to update CHAOS points: ${error.message}`, error.stack);
     }
   }
 
@@ -127,8 +165,7 @@ export class EventsAggregatorService {
       // check if we've finished
       if (toBlock == recentBlockNumber) {
         //save progress here in case we do not enter specific handler method before
-        const savePromises = addresses.map((address) => this.saveProgress(address, toBlock));
-        await Promise.all(savePromises);
+        await this.saveProgress(addresses, toBlock);
         break;
       }
 
@@ -195,16 +232,33 @@ export class EventsAggregatorService {
   /**
    * Save progress metadata for each portfolio address and for all possible aggregation types of that specific product type.
    */
-  private async saveProgress(address: Address, recentBlockNumber: bigint) {
+  private async saveProgress(addresses: Array<Address>, recentBlockNumber: bigint) {
     this.logger.log("Saving progress metadata", this.saveProgress.name);
-    const addressLowerCase = address.toLowerCase();
-    await this.progressMetadataDb.saveProgressMetadata(
-      new ProgressMetadataDto(
-        addressLowerCase,
-        Number(recentBlockNumber),
-        AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT,
-      ),
-    );
+
+    for (const address of addresses) {
+      const addressLowerCase = address.toLowerCase();
+
+      if (this.feeManagerAddresses.has(address)) {
+        await this.progressMetadataDb.saveProgressMetadata(
+          new ProgressMetadataDto(
+            addressLowerCase,
+            Number(recentBlockNumber),
+            AggregationType.REWARDS_CONVERTED_TO_USDC_EVENT,
+          ),
+        );
+      } else if (this.lpVaultsAddresses.has(address)) {
+        await this.progressMetadataDb.saveProgressMetadata(
+          new ProgressMetadataDto(addressLowerCase, Number(recentBlockNumber), AggregationType.LP_DEPOSIT),
+        );
+        await this.progressMetadataDb.saveProgressMetadata(
+          new ProgressMetadataDto(addressLowerCase, Number(recentBlockNumber), AggregationType.LP_WITHDRAW),
+        );
+      } else if (this.mergeContractsAddresses.has(address)) {
+        await this.progressMetadataDb.saveProgressMetadata(
+          new ProgressMetadataDto(addressLowerCase, Number(recentBlockNumber), AggregationType.MERGE),
+        );
+      }
+    }
   }
 
   private async getLowestFromBlocks(): Promise<Map<Address, bigint>> {
@@ -212,6 +266,10 @@ export class EventsAggregatorService {
     const lpDepositBlocks = await this.lpOperationsHelperService.getFromBlocks(AggregationType.LP_DEPOSIT);
     const lpWithdrawBlocks = await this.lpOperationsHelperService.getFromBlocks(AggregationType.LP_WITHDRAW);
     const mergeBlocks = await this.mergeOperationsHelperService.getFromBlocks(AggregationType.MERGE);
+
+    this.feeManagerAddresses = new Set(Array.from(feeManagerBlocks.keys()));
+    this.lpVaultsAddresses = new Set(Array.from(lpDepositBlocks.keys()));
+    this.mergeContractsAddresses = new Set(Array.from(mergeBlocks.keys()));
 
     // combine into one map with the lowest fromBlock from each operation
     const combinedMap = new Map<Address, bigint>();
