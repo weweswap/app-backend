@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { ClientSession, Model } from "mongoose";
+import { Model } from "mongoose";
 import { UserDocument } from "../schemas/User.schema";
 import { MongoServerError } from "mongodb";
 
@@ -14,29 +14,24 @@ export class UserDbService {
   ) {}
 
   /**
-   * Updates LP points with retry logic.
+   * Updates user LP points and total CHAOS points.
    *
    * @param userAddress - Address of the user.
    * @param points - Points to increment.
-   * @param session - MongoDB client session.
    */
-  async performTransactionalUpdate(
-    userAddress: string,
-    points: number,
-    session: ClientSession,
-    maxRetries: number = 5,
-    retryDelay: number = 100, // in milliseconds
-  ): Promise<void> {
+  async updateLpPoints(userAddress: string, points: number): Promise<void> {
     const filter = { userAddress };
     const update = { $inc: { lpCHAOSPoints: points, totalCHAOSPoints: points } };
     const options = { upsert: true };
 
     let attempt = 0;
-    let currentDelay = retryDelay;
+    const maxRetries = 5;
+    let retryDelay = 100; // Initial delay in milliseconds
 
     while (attempt < maxRetries) {
       try {
-        await this.userModel.findOneAndUpdate(filter, update, { ...options, session }).exec();
+        await this.userModel.findOneAndUpdate(filter, update, options).exec();
+        this.logger.log(`Successfully updated LP points for user ${userAddress}.`);
         return; // Success
       } catch (error) {
         if (
@@ -47,10 +42,10 @@ export class UserDbService {
         ) {
           attempt++;
           this.logger.warn(
-            `Transient error updating LP points for user ${userAddress}. Retry attempt ${attempt} after ${currentDelay}ms.`,
+            `Transient error updating LP points for user ${userAddress}. Retry attempt ${attempt} after ${retryDelay}ms.`,
           );
-          await new Promise((resolve) => setTimeout(resolve, currentDelay));
-          currentDelay *= 2; // Exponential backoff
+          await this.delay(retryDelay);
+          retryDelay *= 2; // Exponential backoff
         } else {
           this.logger.error(
             `Non-transient error updating LP points for user ${userAddress}: ${error.message}`,
@@ -60,6 +55,7 @@ export class UserDbService {
         }
       }
     }
+
     throw new Error(`Failed to update LP points for user ${userAddress} after ${maxRetries} attempts.`);
   }
 
@@ -100,5 +96,14 @@ export class UserDbService {
    */
   async countUsersWithMorePoints(totalChaosPoints: number): Promise<number> {
     return this.userModel.countDocuments({ totalCHAOSPoints: { $gt: totalChaosPoints } }).exec();
+  }
+
+  /**
+   * Utility method to delay execution.
+   *
+   * @param ms - Milliseconds to delay.
+   */
+  private async delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
