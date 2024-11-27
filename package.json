@@ -38,6 +38,7 @@
     "dotenv-flow": "^4.1.0",
     "ethereum-block-by-date": "1.4.9",
     "http-proxy-middleware": "^3.0.3",
+    "mongodb": "^6.11.0",
     "multer": "^1.4.5-lts.1",
     "nestjs-axios-retry": "^1.0.7",
     "reflect-metadata": "^0.1.13",
