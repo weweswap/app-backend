@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { ClientSession, Model } from "mongoose";
 import { LPPositionDocument } from "../schemas/LPPosition.schema";
+import { MongoServerError } from "mongodb";
 
 @Injectable()
 export class LpPositionDbService {
@@ -93,21 +94,52 @@ export class LpPositionDbService {
   }
 
   /**
-   * Updates the lastRewardTimestamp of an LP Position.
+   * Updates the lastRewardTimestamp of an LP Position with retry logic.
+   *
+   * @param depositId - Unique identifier of the deposit.
+   * @param newTimestamp - New timestamp to set.
+   * @param session - MongoDB client session.
    */
-  async updateLastRewardTimestamp(depositId: string, newTimestamp: Date, session?: ClientSession): Promise<void> {
-    try {
-      await this.lpPositionModel
-        .updateOne({ depositId }, { lastRewardTimestamp: newTimestamp })
-        .session(session ?? null)
-        .exec();
-    } catch (error) {
-      this.logger.error(
-        `Failed to update lastRewardTimestamp for LP Position ${depositId}: ${error.message}`,
-        error.stack,
-      );
-      throw error;
+  async updateLastRewardTimestampWithRetry(
+    depositId: string,
+    newTimestamp: Date,
+    session: ClientSession,
+    maxRetries: number = 5,
+    retryDelay: number = 100, // in milliseconds
+  ): Promise<void> {
+    let attempt = 0;
+    let currentDelay = retryDelay;
+
+    while (attempt < maxRetries) {
+      try {
+        await this.lpPositionModel
+          .updateOne({ depositId }, { $set: { lastRewardTimestamp: newTimestamp } }, { session })
+          .exec();
+        this.logger.log(`Successfully updated lastRewardTimestamp for LP Position ${depositId}`);
+        return; // Success
+      } catch (error) {
+        if (
+          error instanceof MongoServerError &&
+          (error.hasErrorLabel("TransientTransactionError") ||
+            error.code === 112 || // Write conflict
+            error.code === 251) // UnknownTransactionCommitResult
+        ) {
+          attempt++;
+          this.logger.warn(
+            `Transient error updating lastRewardTimestamp for LP Position ${depositId}. Retry attempt ${attempt} after ${currentDelay}ms.`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, currentDelay));
+          currentDelay *= 2; // Exponential backoff
+        } else {
+          this.logger.error(
+            `Non-transient error updating lastRewardTimestamp for LP Position ${depositId}: ${error.message}`,
+            error.stack,
+          );
+          throw error; // Rethrow non-transient errors
+        }
+      }
     }
+    throw new Error(`Failed to update lastRewardTimestamp for LP Position ${depositId} after ${maxRetries} attempts.`);
   }
 
   /**

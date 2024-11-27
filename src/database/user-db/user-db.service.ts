@@ -1,14 +1,67 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { ClientSession, Model } from "mongoose";
 import { UserDocument } from "../schemas/User.schema";
+import { MongoServerError } from "mongodb";
 
 @Injectable()
 export class UserDbService {
+  private readonly logger = new Logger(UserDbService.name);
+
   constructor(
     @InjectModel(UserDocument.name)
     private userModel: Model<UserDocument>,
   ) {}
+
+  /**
+   * Updates LP points with retry logic.
+   *
+   * @param userAddress - Address of the user.
+   * @param points - Points to increment.
+   * @param session - MongoDB client session.
+   */
+  async performTransactionalUpdate(
+    userAddress: string,
+    points: number,
+    session: ClientSession,
+    maxRetries: number = 5,
+    retryDelay: number = 100, // in milliseconds
+  ): Promise<void> {
+    const filter = { userAddress };
+    const update = { $inc: { lpCHAOSPoints: points, totalCHAOSPoints: points } };
+    const options = { upsert: true };
+
+    let attempt = 0;
+    let currentDelay = retryDelay;
+
+    while (attempt < maxRetries) {
+      try {
+        await this.userModel.findOneAndUpdate(filter, update, { ...options, session }).exec();
+        return; // Success
+      } catch (error) {
+        if (
+          error instanceof MongoServerError &&
+          (error.hasErrorLabel("TransientTransactionError") ||
+            error.code === 112 || // Write conflict
+            error.code === 251) // UnknownTransactionCommitResult
+        ) {
+          attempt++;
+          this.logger.warn(
+            `Transient error updating LP points for user ${userAddress}. Retry attempt ${attempt} after ${currentDelay}ms.`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, currentDelay));
+          currentDelay *= 2; // Exponential backoff
+        } else {
+          this.logger.error(
+            `Non-transient error updating LP points for user ${userAddress}: ${error.message}`,
+            error.stack,
+          );
+          throw error; // Rethrow non-transient errors
+        }
+      }
+    }
+    throw new Error(`Failed to update LP points for user ${userAddress} after ${maxRetries} attempts.`);
+  }
 
   async updateMergerPoints(userAddress: string, points: number): Promise<void> {
     await this.userModel
@@ -18,18 +71,6 @@ export class UserDbService {
           $inc: { mergerCHAOSPoints: points, totalCHAOSPoints: points },
         },
         { upsert: true },
-      )
-      .exec();
-  }
-
-  async updateLpPoints(userAddress: string, points: number, session?: ClientSession): Promise<void> {
-    await this.userModel
-      .findOneAndUpdate(
-        { userAddress },
-        {
-          $inc: { lpCHAOSPoints: points, totalCHAOSPoints: points },
-        },
-        { upsert: true, session },
       )
       .exec();
   }
