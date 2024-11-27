@@ -94,28 +94,24 @@ export class LpPositionDbService {
   }
 
   /**
-   * Updates the lastRewardTimestamp of an LP Position with retry logic.
+   * Updates the lastRewardTimestamp of an LP Position.
    *
    * @param depositId - Unique identifier of the deposit.
    * @param newTimestamp - New timestamp to set.
-   * @param session - MongoDB client session.
    */
-  async updateLastRewardTimestampWithRetry(
-    depositId: string,
-    newTimestamp: Date,
-    session: ClientSession,
-    maxRetries: number = 5,
-    retryDelay: number = 100, // in milliseconds
-  ): Promise<void> {
+  async updateLastRewardTimestamp(depositId: string, newTimestamp: Date): Promise<void> {
+    const filter = { depositId };
+    const update = { $set: { lastRewardTimestamp: newTimestamp } };
+    const options = {};
+
     let attempt = 0;
-    let currentDelay = retryDelay;
+    const maxRetries = 5;
+    let retryDelay = 100; // Initial delay in milliseconds
 
     while (attempt < maxRetries) {
       try {
-        await this.lpPositionModel
-          .updateOne({ depositId }, { $set: { lastRewardTimestamp: newTimestamp } }, { session })
-          .exec();
-        this.logger.log(`Successfully updated lastRewardTimestamp for LP Position ${depositId}`);
+        await this.lpPositionModel.updateOne(filter, update, options).exec();
+        this.logger.log(`Successfully updated lastRewardTimestamp for LP Position ${depositId}.`);
         return; // Success
       } catch (error) {
         if (
@@ -126,10 +122,10 @@ export class LpPositionDbService {
         ) {
           attempt++;
           this.logger.warn(
-            `Transient error updating lastRewardTimestamp for LP Position ${depositId}. Retry attempt ${attempt} after ${currentDelay}ms.`,
+            `Transient error updating lastRewardTimestamp for LP Position ${depositId}. Retry attempt ${attempt} after ${retryDelay}ms.`,
           );
-          await new Promise((resolve) => setTimeout(resolve, currentDelay));
-          currentDelay *= 2; // Exponential backoff
+          await this.delay(retryDelay);
+          retryDelay *= 2; // Exponential backoff
         } else {
           this.logger.error(
             `Non-transient error updating lastRewardTimestamp for LP Position ${depositId}: ${error.message}`,
@@ -139,6 +135,7 @@ export class LpPositionDbService {
         }
       }
     }
+
     throw new Error(`Failed to update lastRewardTimestamp for LP Position ${depositId} after ${maxRetries} attempts.`);
   }
 
@@ -155,5 +152,14 @@ export class LpPositionDbService {
       this.logger.error(`Failed to retrieve all active LP Positions: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  /**
+   * Utility method to delay execution.
+   *
+   * @param ms - Milliseconds to delay.
+   */
+  private async delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
