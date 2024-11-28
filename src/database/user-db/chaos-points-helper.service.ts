@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { UserDbService } from "../user-db/user-db.service";
 import { LpPositionDbService } from "../lp-positions-db/lp-positions-db.service";
+import { LPPositionDocument } from "../schemas/LPPosition.schema";
 
 @Injectable()
 export class ChaosPointsHelperService {
@@ -61,6 +62,50 @@ export class ChaosPointsHelperService {
     } catch (error) {
       this.logger.error(`Failed to update CHAOS points hourly: ${error.message}`, error.stack);
       throw error;
+    }
+  }
+
+  /**
+   * Calculates and awards CHAOS points for a specific LP position based on the elapsed time.
+   * @param position The LP position to process.
+   * @param endTime The time until which points should be calculated (e.g., withdrawal time).
+   */
+  async calculateAndAwardHistoricChaosPoints(position: LPPositionDocument, endTime: Date): Promise<void> {
+    const { userAddress, usdcValue, lastRewardTimestamp, depositId } = position;
+
+    // Calculate elapsed time in hours
+    const elapsedMs = endTime.getTime() - lastRewardTimestamp.getTime();
+    const elapsedHours = Math.floor(elapsedMs / (1000 * 60 * 60));
+
+    if (elapsedHours <= 0) {
+      this.logger.debug(
+        `No CHAOS points to award for LP position ${depositId}: less than an hour elapsed since last reward.`,
+      );
+      return;
+    }
+
+    // Calculate CHAOS points
+    const chaosPoints = usdcValue * this.CHAOS_PER_USDC_PER_HOUR * elapsedHours;
+
+    try {
+      // Update user CHAOS points
+      await this.userDbService.updateLpPoints(userAddress, chaosPoints);
+      this.logger.debug(
+        `Awarded ${chaosPoints} CHAOS points to user ${userAddress} for LP position ${depositId} (${elapsedHours} hours).`,
+      );
+
+      // Update the lastRewardTimestamp
+      const newLastRewardTimestamp = new Date(lastRewardTimestamp.getTime() + elapsedHours * 60 * 60 * 1000);
+      await this.lpPositionDbService.updateLastRewardTimestamp(depositId, newLastRewardTimestamp);
+
+      this.logger.log(
+        `Successfully processed historic CHAOS points for LP position ${depositId} for user ${userAddress}.`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to process catch-up CHAOS points for LP position ${depositId} for user ${userAddress}: ${error.message}`,
+        error.stack,
+      );
     }
   }
 }

@@ -13,6 +13,7 @@ import { LpOperationDto, LpOperationMetadataDto } from "../../../database/schema
 import { TOKEN_DEFAULT_DB_PRECISION } from "../../../shared/constants";
 import { AggregationType } from "../../../shared/enum/AggregationType";
 import { LpPositionDbService } from "../../../database/lp-positions-db/lp-positions-db.service";
+import { ChaosPointsHelperService } from "../../../database/user-db/chaos-points-helper.service";
 
 @Injectable()
 export class LpOperationsHelperService {
@@ -26,6 +27,7 @@ export class LpOperationsHelperService {
     private coingeckoService: CoingeckoService,
     private erc20Service: Erc20Service,
     private lpPositionDbService: LpPositionDbService,
+    private chaosPointsHelperService: ChaosPointsHelperService,
   ) {}
 
   /**
@@ -157,19 +159,10 @@ export class LpOperationsHelperService {
       if (remainingUsdcValue <= 0) break;
 
       const transferableUsdc = Math.min(position.usdcValue, remainingUsdcValue);
-      const depositTime = position.depositTimestamp;
-      const withdrawTime = new Date(timestamp * 1000);
+      const withdrawTime = new Date(timestamp);
 
-      const durationInMs = withdrawTime.getTime() - depositTime.getTime();
-      const durationInHours = Math.max(durationInMs / (1000 * 60 * 60), 0);
-
-      // Ensure duration is at least 1 hour to prevent zero CHAOS points
-      if (durationInHours < 1) {
-        this.logger.warn(
-          `LP position ${position.depositId} for user ${userAddress} has less than 1 hour duration. CHAOS points not awarded.`,
-        );
-        continue;
-      }
+      // Award historic CHAOS points before consolidating
+      await this.chaosPointsHelperService.calculateAndAwardHistoricChaosPoints(position, withdrawTime);
 
       // Update or remove the LP position without awarding CHAOS points
       if (transferableUsdc >= position.usdcValue) {
