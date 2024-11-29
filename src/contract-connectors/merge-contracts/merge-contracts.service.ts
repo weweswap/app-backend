@@ -18,7 +18,7 @@ export class MergeContractsService {
 
   /**
    * @description Fetch merge token assigned to the Merge Contract
-   * @param vaultAddress - Arrakis Vault address
+   * @param mergeContractAddress - Address of the Merge Contract
    */
   @Memoize()
   public async getTokens(mergeContractAddress: Address): Promise<Token> {

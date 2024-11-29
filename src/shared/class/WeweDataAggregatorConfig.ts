@@ -170,6 +170,7 @@ export class WeweConfig {
     arrakisResolverAddress: string,
     kyberswapConfig: KyberswapConfig,
     internalApiKey: string,
+    multicallV3Address: Address,
     mergeContracts: MergeContractConfig[],
   ) {
     this.nodeUrlRpc = nodeUrlRpc;
@@ -181,6 +182,7 @@ export class WeweConfig {
     this.privateKey = privateKey;
     this.kyberswapConfig = kyberswapConfig;
     this.internalApiKey = internalApiKey;
+    this.multicallV3Address = multicallV3Address;
     this.mergeContracts = mergeContracts;
   }
 }

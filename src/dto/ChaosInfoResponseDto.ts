@@ -1,4 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { IsInt, Min } from "class-validator";
 import { Address } from "viem";
 
 export class ChaosInfoResponseDto {
@@ -14,6 +15,8 @@ export class ChaosInfoResponseDto {
     example: 5,
     type: Number,
   })
+  @IsInt()
+  @Min(1)
   leaderboardRank: number;
 
   @ApiProperty({

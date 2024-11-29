@@ -37,12 +37,12 @@ export class LpOperationsHelperService {
   public async handleDeposit(log: GetLogsReturnType<typeof LpVaultLogMintAbiEvent>[number]) {
     const operationType = OperationType.Deposit;
 
-    const eventId = log.transactionHash + log.transactionIndex;
+    const eventId = log.transactionHash + log.logIndex;
     const vaultAddress = log.address.toLowerCase() as Address;
     this.logger.debug(`Handling lp operation event (${vaultAddress}) of type "deposit"`);
 
-    const amount0In = Number(log.args.amount0In ?? 0n);
-    const amount1In = Number(log.args.amount1In ?? 0n);
+    const amount0In = log.args.amount0In ?? 0n;
+    const amount1In = log.args.amount1In ?? 0n;
 
     const timestamp = Number(await this.evmConnector.getBlockTimestamp(log.blockNumber));
     const { token0, token1 } = await this.arrakisVaultContractService.getTokens(vaultAddress);
@@ -60,7 +60,8 @@ export class LpOperationsHelperService {
       this.erc20Service.getErc20TokenDecimals(token1.address),
     ]);
 
-    const usdcValue = (amount0In * +t0Price) / 10 ** t0Decimals + (amount1In * +t1Price) / 10 ** t1Decimals;
+    const usdcValue =
+      (Number(amount0In) * +t0Price) / 10 ** t0Decimals + (Number(amount1In) * +t1Price) / 10 ** t1Decimals;
 
     const depositOperation = new LpOperationDto(
       eventId.toLowerCase(),
@@ -99,12 +100,12 @@ export class LpOperationsHelperService {
   public async handleWithdrawal(log: GetLogsReturnType<typeof LpVaultLogBurnAbiEvent>[number]) {
     const operationType = OperationType.Withdrawal;
 
-    const eventId = log.transactionHash + log.transactionIndex;
+    const eventId = log.transactionHash + log.logIndex;
     const vaultAddress = log.address.toLowerCase() as Address;
     this.logger.debug(`Handling lp operation event (${vaultAddress}) of type "withdraw"`);
 
-    const amount0Out = Number(log.args.amount0Out ?? 0n);
-    const amount1Out = Number(log.args.amount1Out ?? 0n);
+    const amount0Out = log.args.amount0Out ?? 0n;
+    const amount1Out = log.args.amount1Out ?? 0n;
 
     const timestamp = Number(await this.evmConnector.getBlockTimestamp(log.blockNumber));
     const { token0, token1 } = await this.arrakisVaultContractService.getTokens(vaultAddress);
@@ -122,7 +123,8 @@ export class LpOperationsHelperService {
       this.erc20Service.getErc20TokenDecimals(token1.address),
     ]);
 
-    const usdcValue = (amount0Out * +t0Price) / 10 ** t0Decimals + (amount1Out * +t1Price) / 10 ** t1Decimals;
+    const usdcValue =
+      (Number(amount0Out) * +t0Price) / 10 ** t0Decimals + (Number(amount1Out) * +t1Price) / 10 ** t1Decimals;
 
     const withdrawalOperation = new LpOperationDto(
       eventId.toLowerCase(),

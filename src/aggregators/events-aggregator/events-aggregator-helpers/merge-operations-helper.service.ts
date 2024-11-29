@@ -26,7 +26,7 @@ export class MergeOperationsHelperService {
   ) {}
 
   public async handleMerge(log: GetLogsReturnType<typeof MergeContractMergedEvent>[number]) {
-    const eventId = log.transactionHash + log.transactionIndex;
+    const eventId = log.transactionHash + log.logIndex;
     const mergeContractAddress = log.address.toLowerCase() as Address;
     this.logger.debug(`Handling merge event for ${mergeContractAddress}`);
 
