@@ -56,7 +56,7 @@ export class ZapOutService {
 
   private async fetchKyberSwapRoute(tokenIn: string, tokenOut: string, amountIn: bigint): Promise<KyberSwapResponse> {
     const kyberSwapApiUrl = `${this.kyberswapConfig.url}/base/api/v1/routes`;
-    const params = { tokenIn, tokenOut, amountIn: amountIn.toString() };
+    const params = { tokenIn, tokenOut, amountIn: amountIn.toString(), includedSources: "uniswapv3" };
 
     this.logger.debug(`Fetching KyberSwap route with params: ${JSON.stringify(params)}`);
 
