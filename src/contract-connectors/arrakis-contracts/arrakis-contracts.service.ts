@@ -76,6 +76,61 @@ export class ArrakisContractsService {
 
   @Memoize({
     expiring: ONE_HOUR_IN_MILLISECONDS,
+    hashFunction: (v: Address, t: number) => v + t,
+  })
+  public async getCurrentVaultTokenPrice(vaultAddress: Address, timestampsInMs: number | bigint) {
+    const helperContract = this.getArrakisHelperContract();
+    const vaultContract = this.getVaultContract(vaultAddress);
+
+    this.configService.getArrakisVaultToken0CoingeckoId(vaultAddress);
+
+    // make all calls at once, whilst batching request (per blockNumber) to evm
+    const [t0Price, t1Price, vaultTokenDecimals, tokenPair, [holding, totalSupply]] = await Promise.all([
+      this.coingeckoService.getTokenUsdPrice(
+        this.configService.getArrakisVaultToken0CoingeckoId(vaultAddress),
+        Number(timestampsInMs),
+      ),
+      this.coingeckoService.getTokenUsdPrice(
+        this.configService.getArrakisVaultToken1CoingeckoId(vaultAddress),
+        Number(timestampsInMs),
+      ),
+      this.getVaultTokenDecimals(vaultAddress),
+      this.getTokens(vaultAddress),
+      this.evmConnector.client.multicall({
+        allowFailure: false,
+        contracts: [
+          {
+            ...helperContract,
+            functionName: "totalUnderlying",
+            args: [vaultAddress],
+          },
+          {
+            ...vaultContract,
+            functionName: "totalSupply",
+          },
+        ],
+        multicallAddress: this.configService.multicallV3Address,
+      }),
+    ]);
+
+    const [holdings0, holdings1] = [
+      Big(holding[0].toString()).div(Math.pow(10, tokenPair.token0.decimals)),
+      Big(holding[1].toString()).div(Math.pow(10, tokenPair.token1.decimals)),
+    ];
+
+    const tvlUsd = holdings0
+      .mul(Big(t0Price))
+      .plus(holdings1.mul(Big(t1Price)))
+      .toNumber();
+
+    const vaultTokenPrecision = 10 ** vaultTokenDecimals;
+    const vaultTokenSupply = Big(totalSupply.toString()).div(vaultTokenPrecision).toNumber();
+
+    return tvlUsd > 0 && vaultTokenSupply > 0 ? tvlUsd / vaultTokenSupply : 0;
+  }
+
+  @Memoize({
+    expiring: ONE_HOUR_IN_MILLISECONDS,
     hashFunction: (v: ArrakisVaultConfig, t: number, b: number) => v.address + t + b,
   })
   public async getTvlUsd(
@@ -151,7 +206,7 @@ export class ArrakisContractsService {
   }
 
   @Memoize()
-  private async getVaultTokenDecimals(vaultAddress: Address): Promise<number> {
+  public async getVaultTokenDecimals(vaultAddress: Address): Promise<number> {
     return this.getVaultContract(vaultAddress).read.decimals();
   }
 

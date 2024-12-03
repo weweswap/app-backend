@@ -23,6 +23,12 @@ export class LPPositionDocument extends Document {
   vaultAddress: string;
 
   @Prop({
+    type: String,
+    required: true,
+  })
+  shareAmount: string;
+
+  @Prop({
     type: Number,
     required: true,
   })

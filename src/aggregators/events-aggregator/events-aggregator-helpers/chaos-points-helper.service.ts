@@ -1,7 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { UserDbService } from "../user-db/user-db.service";
-import { LpPositionDbService } from "../lp-positions-db/lp-positions-db.service";
-import { LPPositionDocument } from "../schemas/LPPosition.schema";
+import { Address } from "viem";
+import { LpPositionDbService } from "../../../database/lp-positions-db/lp-positions-db.service";
+import { UserDbService } from "../../../database/user-db/user-db.service";
+import { ArrakisContractsService } from "../../../contract-connectors/arrakis-contracts/arrakis-contracts.service";
+import { LPPositionDocument } from "../../../database/schemas/LPPosition.schema";
 
 @Injectable()
 export class ChaosPointsHelperService {
@@ -11,6 +13,7 @@ export class ChaosPointsHelperService {
     private readonly logger: Logger,
     private readonly lpPositionDbService: LpPositionDbService,
     private readonly userDbService: UserDbService,
+    private readonly arrakisConstractService: ArrakisContractsService,
   ) {}
 
   /**
@@ -19,11 +22,15 @@ export class ChaosPointsHelperService {
   async updateChaosPointsHourly(): Promise<void> {
     try {
       const activePositions = await this.lpPositionDbService.getAllActiveLPPositions();
-
       const currentTime = new Date();
 
       for (const position of activePositions) {
-        const { userAddress, usdcValue, lastRewardTimestamp, depositId } = position;
+        const { userAddress, usdcValue, lastRewardTimestamp, depositId, shareAmount, vaultAddress } = position;
+        const currentVaultSharePrice = await this.arrakisConstractService.getCurrentVaultTokenPrice(
+          vaultAddress as Address,
+          currentTime.getTime(),
+        );
+        const vaultTokenDecimals = await this.arrakisConstractService.getVaultTokenDecimals(vaultAddress as Address);
 
         // Calculate the number of full hours elapsed since last reward
         const elapsedMs = currentTime.getTime() - lastRewardTimestamp.getTime();
@@ -36,6 +43,7 @@ export class ChaosPointsHelperService {
 
         // Calculate CHAOS points
         const chaosPoints = usdcValue * this.CHAOS_PER_USDC_PER_HOUR * elapsedHours;
+        const newUsdcValue = (+shareAmount / 10 ** vaultTokenDecimals) * currentVaultSharePrice;
 
         try {
           // Update user CHAOS points
@@ -46,7 +54,7 @@ export class ChaosPointsHelperService {
 
           // Update the lastRewardTimestamp
           const newLastRewardTimestamp = new Date(lastRewardTimestamp.getTime() + elapsedHours * 60 * 60 * 1000);
-          await this.lpPositionDbService.updateLastRewardTimestamp(depositId, newLastRewardTimestamp);
+          await this.lpPositionDbService.updateLastRewardTimestamp(depositId, newLastRewardTimestamp, newUsdcValue);
 
           this.logger.log(`Successfully processed LP position ${depositId} for user ${userAddress}.`);
         } catch (error) {

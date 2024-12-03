@@ -77,14 +77,20 @@ export class LpPositionDbService {
   }
 
   /**
-   * Updates the usdcValue of an LP Position (for partial withdrawals).
+   * Updates the usdcValue and share amount of an LP Position (for partial withdrawals).
    * @param depositId Unique identifier of the deposit.
+   * @param newShareAmount New share amount.
    * @param newUsdcValue New USDC value after withdrawal.
    */
-  async updateLPPositionUsdcValue(depositId: string, newUsdcValue: number, session?: ClientSession): Promise<void> {
+  async updateLPPositionShares(
+    depositId: string,
+    newShareAmount: bigint,
+    newUsdcValue: number,
+    session?: ClientSession,
+  ): Promise<void> {
     try {
       await this.lpPositionModel
-        .updateOne({ depositId }, { usdcValue: newUsdcValue })
+        .updateOne({ depositId }, { shareAmount: newShareAmount, usdcValue: newUsdcValue })
         .session(session ?? null)
         .exec();
     } catch (error) {
@@ -99,9 +105,12 @@ export class LpPositionDbService {
    * @param depositId - Unique identifier of the deposit.
    * @param newTimestamp - New timestamp to set.
    */
-  async updateLastRewardTimestamp(depositId: string, newTimestamp: Date): Promise<void> {
+  async updateLastRewardTimestamp(depositId: string, newTimestamp: Date, newUsdcValue?: number): Promise<void> {
     const filter = { depositId };
-    const update = { $set: { lastRewardTimestamp: newTimestamp } };
+    const update: any = { $set: { lastRewardTimestamp: newTimestamp } };
+    if (newUsdcValue !== undefined) {
+      update.$set.usdcValue = newUsdcValue;
+    }
     const options = {};
 
     let attempt = 0;

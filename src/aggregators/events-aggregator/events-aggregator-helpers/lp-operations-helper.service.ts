@@ -13,7 +13,7 @@ import { LpOperationDto, LpOperationMetadataDto } from "../../../database/schema
 import { TOKEN_DEFAULT_DB_PRECISION } from "../../../shared/constants";
 import { AggregationType } from "../../../shared/enum/AggregationType";
 import { LpPositionDbService } from "../../../database/lp-positions-db/lp-positions-db.service";
-import { ChaosPointsHelperService } from "../../../database/user-db/chaos-points-helper.service";
+import { ChaosPointsHelperService } from "./chaos-points-helper.service";
 
 @Injectable()
 export class LpOperationsHelperService {
@@ -43,6 +43,7 @@ export class LpOperationsHelperService {
 
     const amount0In = log.args.amount0In ?? 0n;
     const amount1In = log.args.amount1In ?? 0n;
+    const shareAmount = log.args.mintAmount ?? 0n;
 
     const timestamp = Number(await this.evmConnector.getBlockTimestamp(log.blockNumber));
     const { token0, token1 } = await this.arrakisVaultContractService.getTokens(vaultAddress);
@@ -71,6 +72,7 @@ export class LpOperationsHelperService {
         log.args.receiver!.toLowerCase(),
         amount0In.toString(),
         amount1In.toString(),
+        shareAmount.toString(),
         usdcValue.toFixed(TOKEN_DEFAULT_DB_PRECISION),
         Number(log.blockNumber),
         operationType,
@@ -84,6 +86,7 @@ export class LpOperationsHelperService {
     await this.lpPositionDbService.createLPPosition({
       userAddress: log.args.receiver!.toLowerCase(),
       vaultAddress: vaultAddress.toLowerCase(),
+      shareAmount: shareAmount.toString(),
       usdcValue: usdcValue,
       lastRewardTimestamp: new Date(timestamp),
       depositTimestamp: new Date(timestamp),
@@ -106,6 +109,7 @@ export class LpOperationsHelperService {
 
     const amount0Out = log.args.amount0Out ?? 0n;
     const amount1Out = log.args.amount1Out ?? 0n;
+    const shareAmount = log.args.burnAmount ?? 0n;
 
     const timestamp = Number(await this.evmConnector.getBlockTimestamp(log.blockNumber));
     const { token0, token1 } = await this.arrakisVaultContractService.getTokens(vaultAddress);
@@ -134,6 +138,7 @@ export class LpOperationsHelperService {
         log.args.receiver!.toLowerCase(),
         amount0Out.toString(),
         amount1Out.toString(),
+        shareAmount.toString(),
         usdcValue.toFixed(TOKEN_DEFAULT_DB_PRECISION),
         Number(log.blockNumber),
         operationType,
@@ -155,35 +160,34 @@ export class LpOperationsHelperService {
     }
 
     // Assuming FIFO: Withdraw from the earliest deposit first
-    let remainingUsdcValue = usdcValue;
+    let remainingShares = shareAmount;
 
     for (const position of activeLPPositions) {
-      if (remainingUsdcValue <= 0) break;
+      if (remainingShares <= 0n) break;
 
-      const transferableUsdc = Math.min(position.usdcValue, remainingUsdcValue);
+      const transferableShares = this.minBigInt(BigInt(position.shareAmount), remainingShares);
       const withdrawTime = new Date(timestamp);
 
       // Award historic CHAOS points before consolidating
       await this.chaosPointsHelperService.calculateAndAwardHistoricChaosPoints(position, withdrawTime);
 
       // Update or remove the LP position without awarding CHAOS points
-      if (transferableUsdc >= position.usdcValue) {
+      if (transferableShares >= BigInt(position.shareAmount)) {
         // Entire position is withdrawn
         await this.lpPositionDbService.deleteLPPosition(position.depositId);
       } else {
+        const newShares = BigInt(position.shareAmount) - transferableShares;
+        const newUsdcValue = (Number(newShares) * usdcValue) / Number(shareAmount);
         // Partial withdrawal, update the remaining USDC value
-        await this.lpPositionDbService.updateLPPositionUsdcValue(
-          position.depositId,
-          position.usdcValue - transferableUsdc,
-        );
+        await this.lpPositionDbService.updateLPPositionShares(position.depositId, newShares, Number(newUsdcValue));
       }
 
-      remainingUsdcValue -= transferableUsdc;
+      remainingShares -= transferableShares;
     }
 
-    if (remainingUsdcValue > 0) {
+    if (remainingShares > 0n) {
       this.logger.warn(
-        `Withdrawal USDC value (${usdcValue}) exceeds active LP positions for user ${userAddress} in vault ${vaultAddr}. Remaining: ${remainingUsdcValue}`,
+        `Withdrawal shares (${shareAmount}) exceeds active LP positions for user ${userAddress} in vault ${vaultAddr}. Remaining: ${remainingShares}`,
       );
     }
   }
@@ -243,5 +247,12 @@ export class LpOperationsHelperService {
     }
 
     return fromBlocks;
+  }
+
+  public minBigInt(...values: bigint[]) {
+    if (values.length === 0) {
+      throw new Error("No values provided");
+    }
+    return values.reduce((min, val) => (val < min ? val : min));
   }
 }
