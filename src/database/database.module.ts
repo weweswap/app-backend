@@ -23,7 +23,6 @@ import { UserDocument, UserSchema } from "./schemas/User.schema";
 import { UserDbService } from "./user-db/user-db.service";
 import { LPPositionDocument, LPPositionSchema } from "./schemas/LPPosition.schema";
 import { LpPositionDbService } from "./lp-positions-db/lp-positions-db.service";
-import { ChaosPointsHelperService } from "./user-db/chaos-points-helper.service";
 
 @Module({
   imports: [
@@ -79,7 +78,6 @@ import { ChaosPointsHelperService } from "./user-db/chaos-points-helper.service"
     MergeOperationsDbService,
     UserDbService,
     LpPositionDbService,
-    ChaosPointsHelperService,
   ],
   exports: [
     VaultDbService,
@@ -92,7 +90,6 @@ import { ChaosPointsHelperService } from "./user-db/chaos-points-helper.service"
     MergeOperationsDbService,
     UserDbService,
     LpPositionDbService,
-    ChaosPointsHelperService,
   ],
 })
 export class DatabaseModule {}

@@ -105,9 +105,12 @@ export class LpPositionDbService {
    * @param depositId - Unique identifier of the deposit.
    * @param newTimestamp - New timestamp to set.
    */
-  async updateLastRewardTimestamp(depositId: string, newTimestamp: Date): Promise<void> {
+  async updateLastRewardTimestamp(depositId: string, newTimestamp: Date, newUsdcValue?: number): Promise<void> {
     const filter = { depositId };
-    const update = { $set: { lastRewardTimestamp: newTimestamp } };
+    const update: any = { $set: { lastRewardTimestamp: newTimestamp } };
+    if (newUsdcValue !== undefined) {
+      update.$set.usdcValue = newUsdcValue;
+    }
     const options = {};
 
     let attempt = 0;

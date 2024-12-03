@@ -22,7 +22,7 @@ import { AggregationType } from "../../shared/enum/AggregationType";
 import { FeeManagerEventsHelperService } from "./events-aggregator-helpers/fee-manager-events-helper.service";
 import { LpOperationsHelperService } from "./events-aggregator-helpers/lp-operations-helper.service";
 import { MergeOperationsHelperService } from "./events-aggregator-helpers/merge-operations-helper.service";
-import { ChaosPointsHelperService } from "../../database/user-db/chaos-points-helper.service";
+import { ChaosPointsHelperService } from "./events-aggregator-helpers/chaos-points-helper.service";
 
 @Injectable()
 export class EventsAggregatorService {

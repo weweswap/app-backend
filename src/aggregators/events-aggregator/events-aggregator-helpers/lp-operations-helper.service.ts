@@ -13,7 +13,7 @@ import { LpOperationDto, LpOperationMetadataDto } from "../../../database/schema
 import { TOKEN_DEFAULT_DB_PRECISION } from "../../../shared/constants";
 import { AggregationType } from "../../../shared/enum/AggregationType";
 import { LpPositionDbService } from "../../../database/lp-positions-db/lp-positions-db.service";
-import { ChaosPointsHelperService } from "../../../database/user-db/chaos-points-helper.service";
+import { ChaosPointsHelperService } from "./chaos-points-helper.service";
 
 @Injectable()
 export class LpOperationsHelperService {
