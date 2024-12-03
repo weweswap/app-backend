@@ -36,6 +36,12 @@ export class LpOperationMetadata extends Document {
     type: String,
     isRequired: true,
   })
+  shareAmount: string;
+
+  @Prop({
+    type: String,
+    isRequired: true,
+  })
   usdcValue: string;
 
   @Prop({
@@ -97,6 +103,7 @@ export class LpOperationMetadataDto {
     public userAddress: string,
     public amount0: string,
     public amount1: string,
+    public shareAmount: string,
     public usdcValue: string,
     public blockNumber: number,
     public operationType: OperationType,

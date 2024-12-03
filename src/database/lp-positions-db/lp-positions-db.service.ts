@@ -77,14 +77,20 @@ export class LpPositionDbService {
   }
 
   /**
-   * Updates the usdcValue of an LP Position (for partial withdrawals).
+   * Updates the usdcValue and share amount of an LP Position (for partial withdrawals).
    * @param depositId Unique identifier of the deposit.
+   * @param newShareAmount New share amount.
    * @param newUsdcValue New USDC value after withdrawal.
    */
-  async updateLPPositionUsdcValue(depositId: string, newUsdcValue: number, session?: ClientSession): Promise<void> {
+  async updateLPPositionShares(
+    depositId: string,
+    newShareAmount: bigint,
+    newUsdcValue: number,
+    session?: ClientSession,
+  ): Promise<void> {
     try {
       await this.lpPositionModel
-        .updateOne({ depositId }, { usdcValue: newUsdcValue })
+        .updateOne({ depositId }, { shareAmount: newShareAmount, usdcValue: newUsdcValue })
         .session(session ?? null)
         .exec();
     } catch (error) {
