@@ -23,6 +23,7 @@ import { FeeManagerEventsHelperService } from "./events-aggregator-helpers/fee-m
 import { LpOperationsHelperService } from "./events-aggregator-helpers/lp-operations-helper.service";
 import { MergeOperationsHelperService } from "./events-aggregator-helpers/merge-operations-helper.service";
 import { ChaosPointsHelperService } from "./events-aggregator-helpers/chaos-points-helper.service";
+import { LockDbService } from "../../database/lock-db/lock-db.service";
 
 @Injectable()
 export class EventsAggregatorService {
@@ -40,6 +41,7 @@ export class EventsAggregatorService {
     private mergeOperationsHelperService: MergeOperationsHelperService,
     private progressMetadataDb: ProgressMetadataDbService,
     private chaosPointsHelperService: ChaosPointsHelperService,
+    private lockDbService: LockDbService,
   ) {}
 
   /**
@@ -85,12 +87,29 @@ export class EventsAggregatorService {
 
     // Only add cron job if it does not exist
     if (!this.schedulerRegistry.doesExist("cron", jobName)) {
-      const job = new CronJob(CronExpression.EVERY_HOUR, () => this.updateChaosPoints());
+      const job = new CronJob(CronExpression.EVERY_HOUR, () => this.handleChaosPointsUpdateJob());
 
       this.schedulerRegistry.addCronJob(jobName, job);
       job.start();
 
       this.logger.debug("[EventsAggregatorService] Scheduled updateChaosPointsJob to run every hour!");
+    }
+  }
+
+  /**
+   * Wrapper to handle the CHAOS points update with locking.
+   */
+  private async handleChaosPointsUpdateJob(): Promise<void> {
+    const lockAcquired = await this.lockDbService.acquireLock("updateChaosPointsHourly");
+    if (!lockAcquired) {
+      this.logger.warn("Another instance is already running the CHAOS points update job. Skipping this run.");
+      return;
+    }
+
+    try {
+      await this.updateChaosPoints();
+    } finally {
+      await this.lockDbService.releaseLock("updateChaosPointsHourly");
     }
   }
 

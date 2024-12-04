@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+import { ClientSession, Model } from "mongoose";
 import { UserDocument } from "../schemas/User.schema";
 import { MongoServerError } from "mongodb";
 
@@ -105,5 +105,29 @@ export class UserDbService {
    */
   private async delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Atomically updates user LP points within a transaction.
+   *
+   * @param userAddress - Address of the user.
+   * @param points - Points to increment.
+   * @param session - MongoDB session for transaction.
+   */
+  async updateLpPointsTransactional(userAddress: string, points: number, session: ClientSession): Promise<void> {
+    const filter = { userAddress };
+    const update = { $inc: { lpCHAOSPoints: points, totalCHAOSPoints: points } };
+    const options = { upsert: true, session };
+
+    try {
+      await this.userModel.findOneAndUpdate(filter, update, options).exec();
+      this.logger.debug(`Successfully updated LP points for user ${userAddress} within transaction.`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to update LP points for user ${userAddress} within transaction: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 }

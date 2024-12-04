@@ -23,6 +23,8 @@ import { UserDocument, UserSchema } from "./schemas/User.schema";
 import { UserDbService } from "./user-db/user-db.service";
 import { LPPositionDocument, LPPositionSchema } from "./schemas/LPPosition.schema";
 import { LpPositionDbService } from "./lp-positions-db/lp-positions-db.service";
+import { Lock, LockSchema } from "./schemas/Lock.schema";
+import { LockDbService } from "./lock-db/lock-db.service";
 
 @Module({
   imports: [
@@ -63,6 +65,7 @@ import { LpPositionDbService } from "./lp-positions-db/lp-positions-db.service";
         name: LPPositionDocument.name,
         schema: LPPositionSchema,
       },
+      { name: Lock.name, schema: LockSchema },
     ]),
     WeweConfigModule,
   ],
@@ -78,6 +81,7 @@ import { LpPositionDbService } from "./lp-positions-db/lp-positions-db.service";
     MergeOperationsDbService,
     UserDbService,
     LpPositionDbService,
+    LockDbService,
   ],
   exports: [
     VaultDbService,
@@ -90,6 +94,7 @@ import { LpPositionDbService } from "./lp-positions-db/lp-positions-db.service";
     MergeOperationsDbService,
     UserDbService,
     LpPositionDbService,
+    LockDbService,
   ],
 })
 export class DatabaseModule {}

@@ -4,6 +4,8 @@ import { LpPositionDbService } from "../../../database/lp-positions-db/lp-positi
 import { UserDbService } from "../../../database/user-db/user-db.service";
 import { ArrakisContractsService } from "../../../contract-connectors/arrakis-contracts/arrakis-contracts.service";
 import { LPPositionDocument } from "../../../database/schemas/LPPosition.schema";
+import { InjectConnection } from "@nestjs/mongoose";
+import { Connection } from "mongoose";
 
 @Injectable()
 export class ChaosPointsHelperService {
@@ -14,14 +16,17 @@ export class ChaosPointsHelperService {
     private readonly lpPositionDbService: LpPositionDbService,
     private readonly userDbService: UserDbService,
     private readonly arrakisConstractService: ArrakisContractsService,
+    @InjectConnection() private readonly connection: Connection,
   ) {}
 
   /**
    * Calculates and updates CHAOS points for all active LP positions.
    */
   async updateChaosPointsHourly(): Promise<void> {
+    const session = await this.connection.startSession();
+    session.startTransaction();
     try {
-      const activePositions = await this.lpPositionDbService.getAllActiveLPPositions();
+      const activePositions = await this.lpPositionDbService.getAllActiveLPPositions(session);
       const currentTime = new Date();
 
       for (const position of activePositions) {
@@ -45,31 +50,35 @@ export class ChaosPointsHelperService {
         const chaosPoints = usdcValue * this.CHAOS_PER_USDC_PER_HOUR * elapsedHours;
         const newUsdcValue = (+shareAmount / 10 ** vaultTokenDecimals) * currentVaultSharePrice;
 
-        try {
-          // Update user CHAOS points
-          await this.userDbService.updateLpPoints(userAddress, chaosPoints);
-          this.logger.debug(
-            `Awarded ${chaosPoints} CHAOS points to user ${userAddress} for LP position ${depositId} (${elapsedHours} hours).`,
-          );
+        // Atomically update lastRewardTimestamp and retrieve the updated document
+        const updatedPosition = await this.lpPositionDbService.updateLastRewardTimestampTransactional(
+          depositId,
+          elapsedHours,
+          session,
+          newUsdcValue,
+        );
 
-          // Update the lastRewardTimestamp
-          const newLastRewardTimestamp = new Date(lastRewardTimestamp.getTime() + elapsedHours * 60 * 60 * 1000);
-          await this.lpPositionDbService.updateLastRewardTimestamp(depositId, newLastRewardTimestamp, newUsdcValue);
-
-          this.logger.log(`Successfully processed LP position ${depositId} for user ${userAddress}.`);
-        } catch (error) {
-          this.logger.error(
-            `Failed to process LP position ${depositId} for user ${userAddress}: ${error.message}`,
-            error.stack,
-          );
-          // Continue processing other positions
+        if (!updatedPosition) {
+          this.logger.warn(`LP Position ${depositId} was already processed by another transaction.`);
+          continue;
         }
+
+        // Update user CHAOS points
+        await this.userDbService.updateLpPointsTransactional(userAddress, chaosPoints, session);
+        this.logger.debug(
+          `Awarded ${chaosPoints} CHAOS points to user ${userAddress} for LP position ${depositId} (${elapsedHours} hours).`,
+        );
+        this.logger.log(`Successfully processed LP position ${depositId} for user ${userAddress}.`);
       }
 
+      await session.commitTransaction();
       this.logger.log("Successfully updated CHAOS points hourly.");
     } catch (error) {
+      await session.abortTransaction();
       this.logger.error(`Failed to update CHAOS points hourly: ${error.message}`, error.stack);
       throw error;
+    } finally {
+      session.endSession();
     }
   }
 
