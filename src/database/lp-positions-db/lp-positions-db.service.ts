@@ -171,4 +171,52 @@ export class LpPositionDbService {
   private async delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
+
+  /**
+   * Atomically updates the lastRewardTimestamp and returns the updated document if successful.
+   * Returns null if the position was already processed.
+   *
+   * @param depositId - Unique identifier of the deposit.
+   * @param elapsedHours - Number of hours to add to lastRewardTimestamp.
+   * @param session - MongoDB session for transaction.
+   * @returns {Promise<LPPositionDocument | null>} - The updated document or null.
+   */
+  async updateLastRewardTimestampTransactional(
+    depositId: string,
+    elapsedHours: number,
+    session: ClientSession,
+    newUsdcValue?: number,
+  ): Promise<LPPositionDocument | null> {
+    const filter = { depositId };
+    const update: any = {
+      $set: {
+        lastRewardTimestamp: new Date(new Date().getTime() + elapsedHours * 60 * 60 * 1000),
+      },
+    };
+    if (newUsdcValue !== undefined) {
+      update.$set.usdcValue = newUsdcValue;
+    }
+
+    try {
+      const updatedDoc = await this.lpPositionModel
+        .findOneAndUpdate(filter, update, {
+          new: true,
+          session,
+        })
+        .exec();
+
+      if (!updatedDoc) {
+        this.logger.warn(`LP Position ${depositId} not found for updating.`);
+        return null;
+      }
+
+      return updatedDoc;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update lastRewardTimestamp for LP Position ${depositId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
 }
