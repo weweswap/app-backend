@@ -23,10 +23,8 @@ export class ChaosPointsHelperService {
    * Calculates and updates CHAOS points for all active LP positions.
    */
   async updateChaosPointsHourly(): Promise<void> {
-    const session = await this.connection.startSession();
-    session.startTransaction();
     try {
-      const activePositions = await this.lpPositionDbService.getAllActiveLPPositions(session);
+      const activePositions = await this.lpPositionDbService.getAllActiveLPPositions();
       const currentTime = new Date();
 
       for (const position of activePositions) {
@@ -49,36 +47,23 @@ export class ChaosPointsHelperService {
         // Calculate CHAOS points
         const chaosPoints = usdcValue * this.CHAOS_PER_USDC_PER_HOUR * elapsedHours;
         const newUsdcValue = (+shareAmount / 10 ** vaultTokenDecimals) * currentVaultSharePrice;
+        const newDate = new Date(lastRewardTimestamp.getTime() + elapsedMs);
 
         // Atomically update lastRewardTimestamp and retrieve the updated document
-        const updatedPosition = await this.lpPositionDbService.updateLastRewardTimestampTransactional(
-          depositId,
-          elapsedHours,
-          session,
-          newUsdcValue,
-        );
-
-        if (!updatedPosition) {
-          this.logger.warn(`LP Position ${depositId} was already processed by another transaction.`);
-          continue;
-        }
+        await this.lpPositionDbService.updateLastRewardTimestamp(depositId, newDate, newUsdcValue);
 
         // Update user CHAOS points
-        await this.userDbService.updateLpPointsTransactional(userAddress, chaosPoints, session);
+        await this.userDbService.updateLpPoints(userAddress, chaosPoints);
         this.logger.debug(
           `Awarded ${chaosPoints} CHAOS points to user ${userAddress} for LP position ${depositId} (${elapsedHours} hours).`,
         );
         this.logger.log(`Successfully processed LP position ${depositId} for user ${userAddress}.`);
       }
 
-      await session.commitTransaction();
       this.logger.log("Successfully updated CHAOS points hourly.");
     } catch (error) {
-      await session.abortTransaction();
       this.logger.error(`Failed to update CHAOS points hourly: ${error.message}`, error.stack);
       throw error;
-    } finally {
-      session.endSession();
     }
   }
 
