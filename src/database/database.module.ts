@@ -15,6 +15,16 @@ import { PriceDbService } from "./price-db/price-db.service";
 import { Whitelist, WhitelistSchema } from "./schemas/WhitelistData.schema";
 import { ImportService } from "../api/merge/importWhitelist.service";
 import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
+import { LpOperationDocument, LpOperationSchema } from "./schemas/LpOperation.schema";
+import { LpOperationsDbService } from "./lp-operations-db/lp-operations-db.service";
+import { MergeOperationDocument, MergeOperationSchema } from "./schemas/MergeOperation.schema";
+import { MergeOperationsDbService } from "./merge-operations-db/merge-operations-db.service";
+import { UserDocument, UserSchema } from "./schemas/User.schema";
+import { UserDbService } from "./user-db/user-db.service";
+import { LPPositionDocument, LPPositionSchema } from "./schemas/LPPosition.schema";
+import { LpPositionDbService } from "./lp-positions-db/lp-positions-db.service";
+import { Lock, LockSchema } from "./schemas/Lock.schema";
+import { LockDbService } from "./lock-db/lock-db.service";
 
 @Module({
   imports: [
@@ -39,6 +49,23 @@ import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
         name: Whitelist.name,
         schema: WhitelistSchema,
       },
+      {
+        name: LpOperationDocument.name,
+        schema: LpOperationSchema,
+      },
+      {
+        name: MergeOperationDocument.name,
+        schema: MergeOperationSchema,
+      },
+      {
+        name: UserDocument.name,
+        schema: UserSchema,
+      },
+      {
+        name: LPPositionDocument.name,
+        schema: LPPositionSchema,
+      },
+      { name: Lock.name, schema: LockSchema },
     ]),
     WeweConfigModule,
   ],
@@ -50,6 +77,11 @@ import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
     PriceDbService,
     ImportService,
     WhitelistDbService,
+    LpOperationsDbService,
+    MergeOperationsDbService,
+    UserDbService,
+    LpPositionDbService,
+    LockDbService,
   ],
   exports: [
     VaultDbService,
@@ -58,6 +90,11 @@ import { WhitelistDbService } from "./whitelist-db/whitelist-db.service";
     PriceDbService,
     ImportService,
     WhitelistDbService,
+    LpOperationsDbService,
+    MergeOperationsDbService,
+    UserDbService,
+    LpPositionDbService,
+    LockDbService,
   ],
 })
 export class DatabaseModule {}

@@ -39,6 +39,21 @@ export class EvmConnectorService {
     return this;
   }
 
+  /**
+   * Retrieves the timestamp of a specific block.
+   *
+   * This method queries the blockchain to fetch the timestamp of the block
+   * identified by the provided block number. The timestamp is returned in
+   * milliseconds for consistency with JavaScript's `Date` object.
+   *
+   * The result of this method is memoized to optimize performance for
+   * subsequent calls with the same block number.
+   *
+   * @param {BlockNumber} blocknumber - The block number for which the timestamp is required.
+   * @returns {Promise<bigint>} A promise that resolves to the block's timestamp in milliseconds as a bigint.
+   *
+   * @throws {Error} If the block number is invalid or the blockchain client fails to fetch the block.
+   */
   @Memoize()
   public async getBlockTimestamp(blocknumber: BlockNumber): Promise<bigint> {
     const block = await this.client.getBlock({
